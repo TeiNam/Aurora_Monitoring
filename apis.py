@@ -17,6 +17,7 @@ api_mapping = {
 
 app = FastAPI()
 app.mount("/css", StaticFiles(directory="css"), name="css")
+app.mount("/js", StaticFiles(directory="js"), name="js")
 templates = Jinja2Templates(directory="templates")
 
 

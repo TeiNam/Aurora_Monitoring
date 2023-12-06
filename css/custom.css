@@ -1,0 +1,11 @@
+.input-field:invalid {
+    border-color: red;
+}
+.input-field:valid {
+    border-color: green;
+}
+button {
+    height: 3.0em;
+    width: 7.0em;
+    font-size: 1.0em;
+}

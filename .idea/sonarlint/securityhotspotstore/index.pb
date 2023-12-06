@@ -23,3 +23,13 @@ G.idea/sonarlint/issuestore/8/e/8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d,b/4/b4
 Q.idea/sonarlint/securityhotspotstore/1/9/19359a61ae2446b51b549167b014da2fcf265768,e/2/e2212f35b63a1f1addcdc9ab55a8fc987a93a069
 
 Q.idea/sonarlint/securityhotspotstore/8/e/8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d,1/0/10a03f31c4dce92cb371e761ce9429428bb6c176
+M
+templates/instance_setup.html,1/9/196cada4f71f4e85aafd7082e06465c8117640fc
+J
+templates/sql_explain.html,c/5/c5449a77b6c11e65898e9296e52f4aaf88d8d632
+7
+apis.py,b/7/b7b20edb9fd552a25a361f93fad967b6dd6ba284
+>
+css/custom.css,c/6/c6c24644217ee87c2aa919f41f5c868ad263913f
+A
+js/formHandler.js,4/6/46be0de762edae876235c5345d94389e7bc563bb
