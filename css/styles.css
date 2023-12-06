@@ -1,0 +1,229 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #171717;
+    color: #d3d3d3;
+    margin: 0;
+    padding: 20px;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0.4em 2em;
+  background-color: #171717;
+  border-radius: 25px;
+  transition: .4s ease-in-out;
+}
+
+#heading {
+  text-align: center;
+  margin: 2em;
+  color: rgb(255, 255, 255);
+  font-size: 1.2em;
+}
+
+.field {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    border-radius: 25px;
+    padding: 0.6em;
+    border: none;
+    outline: none;
+    color: white;
+    background-color: #292929;
+    box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
+    width: 100%;
+    font-size: 1.1em;
+}
+
+.field label {
+    white-space: nowrap;
+    min-width: 150px;
+}
+
+.field input {
+    flex-grow: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: #d3d3d3;
+}
+
+/* Firefox에서 숫자 조정 버튼 숨기기 */
+.field input[type='number'] {
+    -moz-appearance: textfield;
+}
+
+/* Chrome, Safari, Edge에서 숫자 조정 버튼 숨기기 */
+.field input[type='number']::-webkit-inner-spin-button,
+.field input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.input-icon {
+  height: 1.3em;
+  width: 1.3em;
+  fill: white;
+}
+
+.input-field {
+  background: none;
+  border: none;
+  outline: none;
+  width: 100%;
+  color: #d3d3d3;
+}
+
+.form .btn {
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  margin-top: 2.5em;
+}
+
+.button1, .button2, .button3 {
+  padding: 0.5em;
+  border-radius: 5px;
+  border: none;
+  outline: none;
+  transition: .4s ease-in-out;
+  background-color: #252525;
+  color: white;
+}
+
+.button1 {
+  padding-left: 1.1em;
+  padding-right: 1.1em;
+  margin-right: 0.5em;
+}
+
+.button1:hover, .button2:hover {
+  background-color: black;
+}
+
+.button2 {
+  padding-left: 2.3em;
+  padding-right: 2.3em;
+}
+
+.button3 {
+  margin-bottom: 3em;
+}
+
+.button3:hover {
+  background-color: red;
+}
+
+.button4 {
+    margin: 0 auto; /* 수평 가운데 정렬을 위한 margin 설정 */
+    display: block; /* 가운데 정렬을 위해 block 요소로 변경 */
+    text-align: center; /* 텍스트를 수평으로 가운데 정렬 */
+}
+
+button {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    color: white;
+    background-color: #292929;
+    padding: 1.0em 1.4em;
+    border: none;
+    border-radius: .6rem;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+button span:not(:nth-child(6)) {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    height: 30px;
+    width: 30px;
+    background-color: #0c66ed;
+    border-radius: 50%;
+    transition: .6s ease;
+}
+
+button span:nth-child(6) {
+    position: relative;
+}
+
+button span:nth-child(1) {
+    transform: translate(-3.3em, -4em);
+}
+
+button span:nth-child(2) {
+    transform: translate(-6em, 1.3em);
+}
+
+button span:nth-child(3) {
+    transform: translate(-.2em, 1.8em);
+}
+
+button span:nth-child(4) {
+    transform: translate(3.5em, 1.4em);
+}
+
+button span:nth-child(5) {
+    transform: translate(3.5em, -3.8em);
+}
+
+button:hover span:not(:nth-child(6)) {
+    transform: translate(-50%, -50%) scale(4);
+    transition: 1.5s ease;
+}
+
+footer {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+#instanceTable {
+    border-collapse: collapse;
+    width: 60%;
+    text-align: left;
+    margin-left: 37px;
+    margin-right: auto;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#instanceTable th, #instanceTable td {
+    padding: 8px;
+    text-align: left;
+}
+
+#instanceTable th {
+    background-color: #171717;
+}
+
+#instanceTable tr:nth-child(even) {
+    background-color: #171717;
+}
+
+#instanceTable tr:hover {
+    background-color: #171717;
+}
+
+#instanceTable td button {
+    background-color: #ff4c4c; /* 빨간색 배경 */
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#instanceTable td button:hover {
+    background-color: #ff0000; /* 호버 시 더 어두운 빨간색 */
+}
+
+#content {
+        width: 90%;
+        margin: 0 auto; /* 좌우 마진을 auto로 설정하여 중앙 정렬 */
+        display: block; /* 블록 레벨 요소로 설정 */
+    }
