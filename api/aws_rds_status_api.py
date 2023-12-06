@@ -1,15 +1,9 @@
 import aioboto3
 import asyncio
-import os
 import logging
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from modules.json_loader import load_json
-
-load_dotenv()
-
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+from config import AWS_ACCESS_KEY, AWS_SECRET_KEY
 
 app = FastAPI()
 
@@ -40,8 +34,8 @@ async def fetch_rds_instance_data(instance_name, region):
     async with aioboto3.Session().client(
             'rds',
             region_name=region,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+            aws_access_key_id=AWS_ACCESS_KEY,
+            aws_secret_access_key=AWS_SECRET_KEY
     ) as client:
         instance_data = await get_rds_instance_info(client, instance_name)
 

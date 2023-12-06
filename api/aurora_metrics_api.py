@@ -1,34 +1,10 @@
 from fastapi import FastAPI, HTTPException, Query, Depends
 from datetime import datetime, timedelta
+from config import METRICS
 from modules.mongodb_connector import MongoDBConnector
 from modules.json_loader import load_json
 
 app = FastAPI()
-
-METRICS = [
-    "AuroraBinlogReplicaLag",
-    "ConnectionAttempts",
-    "CPUUtilization",
-    "DatabaseConnections",
-    "Deadlocks",
-    "DeleteThroughput",
-    "DiskQueueDepth",
-    "EngineUptime",
-    "FreeableMemory",
-    "InsertThroughput",
-    "NetworkReceiveThroughput",
-    "NetworkTransmitThroughput",
-    "ReadIOPS",
-    "ReadLatency",
-    "ReadThroughput",
-    "SelectThroughput",
-    "SwapUsage",
-    "UpdateThroughput",
-    "WriteIOPS",
-    "WriteLatency",
-    "WriteThroughput",
-    "Queries",
-]
 
 try:
     rds_instances_data = load_json(filename="rds_instances.json")
