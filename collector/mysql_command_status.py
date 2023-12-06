@@ -1,17 +1,12 @@
-import os
 import asyncio
 import asyncmy
 import pytz
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
+from datetime import datetime
 from modules.crypto_utils import decrypt_password
-from modules.time_utils import get_kst_time
 from modules.mongodb_connector import MongoDBConnector
 from modules.json_loader import load_json
-
-load_dotenv()
-
-MONGODB_COLLECTION_NAME = os.getenv("MONGODB_STATUS_COLLECTION_NAME")
+from modules.time_utils import get_kst_time
+from config import MONGODB_STATUS_COLLECTION_NAME
 
 
 async def query_mysql_status(connection, query_string, single_row=False):
@@ -97,26 +92,13 @@ async def handle_instance(instance, collection):
 
 async def run_mysql_command_status():
     mongodb = MongoDBConnector.get_database()
-    collection = mongodb[MONGODB_COLLECTION_NAME]
+    collection = mongodb[MONGODB_STATUS_COLLECTION_NAME]
 
-    while True:
-        kst = pytz.timezone('Asia/Seoul')
-        now = datetime.now(kst)
+    instances = load_json('rds_instances.json')
+    tasks = [handle_instance(instance, collection) for instance in instances]
+    await asyncio.gather(*tasks)
 
-        tomorrow = now + timedelta(days=1)
-        midnight_kst = datetime(year=tomorrow.year, month=tomorrow.month, day=tomorrow.day, hour=0, minute=0, second=1)
-        midnight_utc = midnight_kst.astimezone(pytz.utc)
-        seconds_until_midnight = (midnight_utc - now.astimezone(pytz.utc)).total_seconds()
-
-        if seconds_until_midnight < 0:
-            seconds_until_midnight += 86400
-
-        await asyncio.sleep(seconds_until_midnight)
-        instances = load_json('rds_instances.json')
-        tasks = [handle_instance(instance, collection) for instance in instances]
-        await asyncio.gather(*tasks)
-
-        MongoDBConnector.client.close()
+    MongoDBConnector.client.close()
 
 if __name__ == '__main__':
     try:

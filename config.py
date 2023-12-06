@@ -3,8 +3,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+MONGODB_SLOWLOG_COLLECTION_NAME = os.getenv("MONGODB_SLOWLOG_COLLECTION_NAME")
+MONGODB_STATUS_COLLECTION_NAME = os.getenv("MONGODB_STATUS_COLLECTION_NAME")
+
 AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY')
 AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
+
+# MySQL에서 고려하는 슬로우 쿼리의 최소 실행 시간 (단위: 초)
+EXEC_TIME = 1
 
 METRICS = [
     "AuroraBinlogReplicaLag",
@@ -30,8 +36,3 @@ METRICS = [
     "WriteThroughput",
     "Queries",
 ]
-
-MONGODB_SLOWLOG_COLLECTION_NAME = os.getenv("MONGODB_SLOWLOG_COLLECTION_NAME")
-
-# MySQL에서 고려하는 슬로우 쿼리의 최소 실행 시간 (단위: 초)
-EXEC_TIME = 1
