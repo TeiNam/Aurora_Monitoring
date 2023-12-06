@@ -30,3 +30,8 @@ METRICS = [
     "WriteThroughput",
     "Queries",
 ]
+
+MONGODB_SLOWLOG_COLLECTION_NAME = os.getenv("MONGODB_SLOWLOG_COLLECTION_NAME")
+
+# MySQL에서 고려하는 슬로우 쿼리의 최소 실행 시간 (단위: 초)
+EXEC_TIME = 1

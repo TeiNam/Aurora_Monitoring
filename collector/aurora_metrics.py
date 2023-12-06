@@ -72,7 +72,7 @@ class MetricFetcher:
             await collection.create_index([(index_field, 1)], name=index_name, **index_options)
 
 
-async def main():
+async def run_aurora_metrics():
     try:
         mongo_client = MongoDBConnector.get_database()
         metric_fetcher = MetricFetcher(mongo_client)
@@ -82,6 +82,6 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        asyncio.run(main())
+        asyncio.run(run_aurora_metrics())
     except Exception as e:
         print(f"{get_kst_time()} - An error occurred: {e}")
