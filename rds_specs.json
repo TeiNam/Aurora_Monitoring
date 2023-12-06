@@ -1,0 +1,62 @@
+{
+  "db.t4g.medium": {
+    "vCPU": 2,
+    "RAM": "4 GiB"
+  },
+  "db.t4g.large": {
+    "vCPU": 2,
+    "RAM": "8 GiB"
+  },
+  "db.t3.medium":  {
+    "vCPU": 2,
+    "RAM": "4 GiB"
+  },
+  "db.r6i.large": {
+    "vCPU": 2,
+    "RAM": "16 GiB"
+  },
+  "db.r6i.xlarge": {
+    "vCPU": 4,
+    "RAM": "32 GiB"
+  },
+  "db.r6i.2xlarge": {
+    "vCPU": 8,
+    "RAM": "64 GiB"
+  },
+  "db.r6i.4xlarge": {
+    "vCPU": 16,
+    "RAM": "128 GiB"
+  },
+  "db.r6i.8xlarge": {
+    "vCPU": 32,
+    "RAM": "256 GiB"
+  },
+  "db.r6g.large": {
+    "vCPU": 2,
+    "RAM": "16 GiB"
+  },
+  "db.r6g.xlarge": {
+    "vCPU": 4,
+    "RAM": "32 GiB"
+  },
+  "db.r6g.2xlarge": {
+    "vCPU": 8,
+    "RAM": "64 GiB"
+  },
+  "db.r6g.4xlarge": {
+    "vCPU": 16,
+    "RAM": "128 GiB"
+  },
+  "db.r6g.8xlarge": {
+    "vCPU": 32,
+    "RAM": "256 GiB"
+  },
+  "db.r5.large":  {
+    "vCPU": 2,
+    "RAM": "16 GiB"
+  },
+  "db.r5.xlarge":  {
+    "vCPU": 4,
+    "RAM": "32 GiB"
+  }
+}

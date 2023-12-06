@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Aurora for MySQL Instance Monitoring Registration</title>
+    <style>
+        .input-field:invalid {
+            border-color: red;
+        }
+        .input-field:valid {
+            border-color: green;
+        }
+        button {
+            height: 2.5em;
+            font-size: 1em;
+            margin: 5px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <h2 id="heading">Aurora for MySQL Instance Monitoring Registration</h2>
+    <main id="content">
+        <section id="instanceList">
+            <h3>Registered Instances</h3>
+            <table id="instanceTable">
+                <thead>
+                    <tr>
+                        <th>Instance Name</th>
+                        <th>Cluster Name</th>
+                        <th>Region</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Table rows will be added dynamically here -->
+                </tbody>
+            </table>
+        </section>
+        <br>
+        <h3>Add Instance</h3>
+        <form class="form" id="rdsForm">
+            <div class="field">
+                <label for="cluster_name">Cluster Name:</label>
+                <input class="input-field" type="text" id="cluster_name" name="cluster_name">
+            </div>
+            <div class="field">
+                <label for="instance_name">Instance Name:</label>
+                <input class="input-field" type="text" id="instance_name" name="instance_name" required>
+            </div>
+            <div class="field">
+                <label for="host">Host:</label>
+                <input class="input-field" type="text" id="host" name="host" required>
+            </div>
+            <div class="field">
+                <label for="port">Port:</label>
+                <input class="input-field" type="number" id="port" name="port" placeholder="3306">
+            </div>
+            <div class="field">
+                <label for="region">Region:</label>
+                <input class="input-field" type="text" id="region" name="region" placeholder="ap-northeast-2">
+            </div>
+            <div class="field">
+                <label for="user">User:</label>
+                <input class="input-field" type="text" id="user" name="user" required>
+            </div>
+            <div class="field">
+                <label for="password">Password:</label>
+                <input class="input-field" type="password" id="password" name="password" required>
+            </div>
+            <br>
+            <button type="submit" class="button4" id="Submit">
+                <span class="text">Submit</span>
+            </button>
+        </form>
+    </main>
+    <footer>
+        <br>
+        <p id="copyright-info">Designed by <span id="author"></span> &copy; <span id="copyright-year"></span></p>
+    </footer>
+    <script>
+        async function loadInstanceList() {
+            try {
+                const response = await fetch('/api/instance_setup/list_instances/');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch instance data');
+                }
+                const data = await response.json();
+                const tableBody = document.getElementById('instanceTable').getElementsByTagName('tbody')[0];
+                tableBody.innerHTML = '';
+
+                data.instances.forEach(instance => {
+                    const row = tableBody.insertRow();
+                    row.insertCell().textContent = instance.instance_name;
+                    row.insertCell().textContent = instance.cluster_name;
+                    row.insertCell().textContent = instance.region;
+
+                    const deleteCell = row.insertCell();
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.onclick = function() { deleteInstance(instance.instance_name); };
+                    deleteCell.appendChild(deleteButton);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        window.onload = function() {
+            loadInstanceList();
+        };
+
+        async function deleteInstance(instanceName) {
+            if (!confirm('Are you sure you want to delete this instance?')) return;
+
+            try {
+                const response = await fetch(`/api/instance_setup/delete_instance/?instance_name=${instanceName}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to delete instance');
+                }
+                const data = await response.json();
+                alert(data.message);
+                loadInstanceList(); // Reload page to update list
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        document.getElementById('rdsForm').onsubmit = async (e) => {
+            e.preventDefault();
+
+            // Check for empty required fields
+            if (!document.getElementById('instance_name').value.trim()) {
+                alert('Instance Name is required.');
+                return;
+            }
+            if (!document.getElementById('host').value.trim()) {
+                alert('Host is required.');
+                return;
+            }
+            if (!document.getElementById('user').value.trim()) {
+                alert('User is required.');
+                return;
+            }
+            if (!document.getElementById('password').value.trim()) {
+                alert('Password is required.');
+                return;
+            }
+
+            const formData = new FormData(e.target);
+            const formProps = Object.fromEntries(formData);
+
+            try {
+                const response = await fetch('/api/instance_setup/add_instance/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formProps)
+                });
+                if (response.ok) {
+                    alert('RDS Instance added successfully!');
+                    loadInstanceList(); // Reload instance list
+                } else {
+                    alert('Failed to add RDS Instance.');
+                }
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        };
+
+        var pageInfo = {
+            author: "DBRE & DA \"Tei\"",
+            copyrightYear: "2023-12-01"
+        };
+        document.getElementById("author").textContent = pageInfo.author;
+        document.getElementById("copyright-year").textContent = pageInfo.copyrightYear;
+    </script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL Utility Page</title>
+    <style>
+        button {
+            height: 2.8em;
+            width: 9.6em;
+            font-size: 1.0em;
+            text-align: center;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <h1>SQL Utility</h1>
+    <main id="content" style="width: 100%">
+        <section class="form">
+            <h2>Plan Execute & SQL Download</h2>
+            <h3>You can save the current plan for a query, and download the query and plan.<br>
+            " Saving a plan is a SELECT query only!! "</h3>
+            <form id="sqlForm">
+                <div class="field">
+                    <label for="pid">Enter PID:</label>
+                    <input class="input-field" type="number" id="pid" name="pid" required>
+                </div>
+                <div class="btn">
+                    <button type="button" class="button1" id="saveExplain">
+                        <span class="circle1"></span>
+                        <span class="circle2"></span>
+                        <span class="circle3"></span>
+                        <span class="circle4"></span>
+                        <span class="circle5"></span>
+                        <span class="text">Save SQLPlan</span>
+                    </button>
+                    <button type="button" class="button2" id="downloadLog">
+                        <span class="circle1"></span>
+                        <span class="circle2"></span>
+                        <span class="circle3"></span>
+                        <span class="circle4"></span>
+                        <span class="circle5"></span>
+                        <span class="text">Download</span>
+                    </button>
+            </form>
+        </section>
+    </main>
+    <footer>
+        <br>
+        <p id="copyright-info">Designed by <span id="author"></span> &copy; <span id="copyright-year"></span></p>
+    </footer>
+
+    <script>
+        function getQueryParam(param) {
+            var searchParams = new URLSearchParams(window.location.search);
+            return searchParams.get(param);
+        }
+
+        var defaultPid = getQueryParam('pid');
+        if (defaultPid) {
+            document.getElementById('pid').value = defaultPid;
+        }
+
+        document.getElementById('saveExplain').addEventListener('click', function(event) {
+            var pid = document.getElementById('pid').value;
+            var protocol = window.location.protocol;
+            var host = window.location.host;
+            var apiUrl = `${protocol}//${host}/api/mysql_explain/explain?pid=${pid}`;
+
+            fetch(apiUrl, {
+                method: 'POST',
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(text) });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Explain executed and saved: ' + data.message);
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+                alert('Error: ' + error.message);
+            });
+        });
+
+        document.getElementById('downloadLog').addEventListener('click', function(event) {
+            var pid = document.getElementById('pid').value;
+            var protocol = window.location.protocol;
+            var host = window.location.host;
+            var apiUrl = `${protocol}//${host}/api/mysql_explain/download?pid=${pid}`;
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error: ${response.status} ${response.statusText}`);
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    var url = window.URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = `slowlog_pid_${pid}.md`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(error => {
+                    console.error('Download failed:', error);
+                    alert(error.message);
+                });
+        });
+
+        var pageInfo = {
+            author: "DBRE & DA \"Tei\"",  // 작성자
+            copyrightYear: "2023-12-01" // 만든 날짜
+        };
+        document.getElementById("author").textContent = pageInfo.author;
+        document.getElementById("copyright-year").textContent = pageInfo.copyrightYear;
+    </script>
+</body>
+</html>
