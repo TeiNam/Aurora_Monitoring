@@ -1,16 +1,13 @@
-import re
 import asyncio
+import re
 import asyncmy
 import pytz
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
 from modules.crypto_utils import decrypt_password
-from modules.time_utils import get_kst_time
 from modules.mongodb_connector import MongoDBConnector
 from modules.json_loader import load_json
+from modules.time_utils import get_kst_time
 from config import MONGODB_SLOWLOG_COLLECTION_NAME, EXEC_TIME
-
-load_dotenv()
 
 EMOJI_PATTERN = re.compile("["
                            u"\U0001F600-\U0001F64F"
@@ -52,8 +49,8 @@ class MySqlMonitor:
                            WHERE info IS NOT NULL
                            AND DB <> 'information_schema'
                            AND USER <> 'monitor'
-                           ORDER BY `TIME` DESC"""
-                    )
+                           ORDER BY `TIME` DESC
+                           """)
                     result = await cur.fetchall()
 
                     for row in result:
@@ -116,9 +113,12 @@ class MySqlMonitor:
 
 class MySqlPoolManager:
 
-    def __init__(self, mongo_collection):
-        self.instances_details = load_json("rds_instances.json")
-        self.monitors = {instance_detail['instance_name']: MySqlMonitor(instance_detail['instance_name'], instance_detail, mongo_collection) for instance_detail in self.instances_details}
+    def __init__(self, instances: list, mongo_collection):
+        self.instances_details = self.parse_instances_from_json(instances)
+        self.monitors = {
+            instance_detail['instance_name']: MySqlMonitor(instance_detail['instance_name'], instance_detail,
+                                                           mongo_collection) for instance_detail in
+            self.instances_details}
         self.pools = {}
 
     @staticmethod
@@ -136,7 +136,8 @@ class MySqlPoolManager:
             instances.append(instance_detail)
         return instances
 
-    async def create_connection_pool_for_instance(self, instance_name: str, instance_settings: MySqlMonitor, max_retries=3, delay=5):
+    async def create_connection_pool_for_instance(self, instance_name: str, instance_settings: MySqlMonitor,
+                                                  max_retries=3, delay=5):
         retries = 0
         while retries < max_retries:
             try:
@@ -151,16 +152,26 @@ class MySqlPoolManager:
                 return
             except Exception as e:
                 retries += 1
-                print(f"{get_kst_time()} - Attempt {retries} failed to create connection pool for {instance_name}: {str(e)}")
+                print(
+                    f"{get_kst_time()} - Attempt {retries} failed to create connection pool for {instance_name}: {str(e)}")
                 if retries < max_retries:
                     print(f"{get_kst_time()} - Retrying to connect to {instance_name} in {delay} seconds...")
                     await asyncio.sleep(delay)
         self.pools[instance_name] = None
 
     async def create_pools(self):
+        tasks = []
         for instance_name, instance_settings in self.monitors.items():
-            if instance_name not in self.pools or self.pools[instance_name] is None:
-                await self.create_connection_pool_for_instance(instance_name, instance_settings, max_retries=3, delay=5)
+            task = asyncio.create_task(
+                self.create_connection_pool_for_instance(instance_name, instance_settings, max_retries=3, delay=5)
+            )
+            tasks.append(task)
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for instance_name, result in zip(self.monitors.keys(), results):
+            if isinstance(result, Exception):
+                print(f"{get_kst_time()} - Error connecting to {instance_name}: {result}")
+                self.pools[instance_name] = None
 
     async def run_monitoring(self):
         while True:
@@ -185,20 +196,19 @@ async def run_mysql_slow_queries():
     mongodb = MongoDBConnector.get_database()
     collection = mongodb[MONGODB_SLOWLOG_COLLECTION_NAME]
 
-    manager = MySqlPoolManager(collection)
+    instances = load_json('rds_instances.json')
+    manager = MySqlPoolManager(instances, collection)
     try:
         await manager.create_pools()
         await manager.run_monitoring()
     except KeyboardInterrupt:
         print(f"{get_kst_time()} - The program was interrupted by a user.")
-    finally:
-        await manager.close()
-        await MongoDBConnector.client.close()
-        print(f"{get_kst_time()} - MySQL Slow Queries Collector's connection to MongoDB has been closed.")
-
-
-if __name__ == '__main__':
-    try:
-        asyncio.run(run_mysql_slow_queries())
     except Exception as e:
         print(f"{get_kst_time()} - An error occurred: {e}")
+    finally:
+        await manager.close()
+        MongoDBConnector.client.close()
+
+if __name__ == '__main__':
+    asyncio.run(run_mysql_slow_queries())
+

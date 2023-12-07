@@ -23,7 +23,7 @@ async def query_mysql_status(connection, query_string, single_row=False):
         return None
 
 
-async def process_global_status(data, uptime):
+def process_global_status(data, uptime):
     processed_data = {}
     total_sum = 0
 

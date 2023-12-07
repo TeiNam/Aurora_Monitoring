@@ -10,14 +10,15 @@ async function loadInstanceList() {
 
         data.instances.forEach(instance => {
             const row = tableBody.insertRow();
-            row.insertCell().textContent = instance.instance_name;
-            row.insertCell().textContent = instance.cluster_name;
             row.insertCell().textContent = instance.region;
+            row.insertCell().textContent = instance.cluster_name;
+            row.insertCell().textContent = instance.instance_name;
 
             const deleteCell = row.insertCell();
             const deleteButton = document.createElement('button');
             deleteButton.textContent = 'Delete';
             deleteButton.onclick = function() { deleteInstance(instance.instance_name); };
+            deleteButton.className = 'smallerButton';
             deleteCell.appendChild(deleteButton);
         });
     } catch (error) {
