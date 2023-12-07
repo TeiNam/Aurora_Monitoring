@@ -2,16 +2,10 @@ import aioboto3
 import asyncio
 import logging
 from fastapi import FastAPI, HTTPException
-from modules.json_loader import load_json
 from config import AWS_ACCESS_KEY, AWS_SECRET_KEY
+from modules.json_loader import load_json
 
 app = FastAPI()
-
-try:
-    rds_instances_data = load_json("rds_instances.json")
-except HTTPException as e:
-    logging.error(e.detail)
-    rds_instances_data = []
 
 
 async def get_rds_instance_info(client, instance_name):
@@ -42,9 +36,9 @@ async def fetch_rds_instance_data(instance_name, region):
         cluster_identifier = instance_data.get('DBClusterIdentifier')
         cluster_data = {}
         is_cluster_writer = False
-        environment_value = None
         if cluster_identifier:
             cluster_data = await get_rds_cluster_info(client, cluster_identifier)
+            # DBClusterMembers에서 특정 DBInstanceIdentifier와 일치하는 멤버의 IsClusterWriter 속성 검사
             for member in cluster_data.get('DBClusterMembers', []):
                 if member.get('DBInstanceIdentifier') == instance_name:
                     is_cluster_writer = member.get('IsClusterWriter', False)
@@ -54,11 +48,7 @@ async def fetch_rds_instance_data(instance_name, region):
                     environment_value = tag['Value']
                     break
 
-        try:
-            rds_specs = load_json("rds_specs.json")
-        except HTTPException as e:
-            logging.error(e.detail)
-            rds_specs = {}
+        rds_specs = load_json("rds_specs.json")
 
         instance_class = instance_data.get('DBInstanceClass')
         spec_data = rds_specs.get(instance_class, {})
@@ -90,8 +80,13 @@ async def fetch_rds_instance_data_safe(instance_name, region):
 
 @app.get("/instance_status")
 async def get_rds_instances():
+    try:
+        rds_instances_info = load_json('rds_instances.json')
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
     tasks = []
-    for instance_info in rds_instances_data:
+    for instance_info in rds_instances_info:
         instance_name = instance_info.get('instance_name')
         region = instance_info.get('region')
 

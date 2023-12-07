@@ -1,22 +1,13 @@
-import os
-from motor.motor_asyncio import AsyncIOMotorClient
+from modules.mongodb_connector import MongoDBConnector
 from fastapi import FastAPI, HTTPException, Query
-from dotenv import load_dotenv
-
-load_dotenv()
-
-MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME")
-MONGODB_COLLECTION_NAME = os.getenv("MONGODB_STATUS_COLLECTION_NAME")
+from config import MONGODB_STATUS_COLLECTION_NAME
 
 app = FastAPI()
 
-client = AsyncIOMotorClient(MONGODB_URI)
-db = client[MONGODB_DB_NAME]
-
 
 async def get_command_status(instance_name):
-    collection = db[MONGODB_COLLECTION_NAME]
+    db = MongoDBConnector.get_database()
+    collection = db[MONGODB_STATUS_COLLECTION_NAME]
     document = await collection.find_one({'instance_name': instance_name}, {'_id': 0})
     return document
 
