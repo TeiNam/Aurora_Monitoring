@@ -44,8 +44,8 @@ async def run_periodically(task_func, interval_seconds):
 
 async def main():
     # aurora_metrics와 mysql_slow_queries는 예외 발생 시 재시작
-    aurora_task = asyncio.create_task(run_with_restart(run_aurora_metrics))
     slow_queries_task = asyncio.create_task(run_with_restart(run_mysql_slow_queries))
+    aurora_task = asyncio.create_task(run_with_restart(run_aurora_metrics))
 
     # mysql_command_status를 매일 자정에 실행
     command_status_task = asyncio.create_task(run_daily_at_midnight(run_mysql_command_status))
