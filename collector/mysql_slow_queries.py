@@ -76,7 +76,7 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                         del pid_time_cache[(instance, pid)]
 
         await asyncio.sleep(1)
-        # status_dict[instance_name] = "Success"
+        status_dict[instance_name] = "Success"
     except Exception as e:
         status_dict[instance_name] = f"Failed: {e}"
 
@@ -123,8 +123,9 @@ async def run_mysql_slow_queries():
 
             if tasks:
                 await asyncio.gather(*tasks)
-            # DEBUG
-            # print(f"{get_kst_time()} - Instance Status: {instance_status}")
+            for instance, status in instance_status.items():
+                if "Failed" in status:
+                    print(f"{get_kst_time()} - Instance {instance} Status: {status}")
 
             await asyncio.sleep(1)
 
