@@ -1,214 +1,159 @@
 import asyncio
-import re
 import asyncmy
 import pytz
+import re
+import traceback
 from datetime import datetime, timedelta
-from modules.crypto_utils import decrypt_password
+
+# Local imports
 from modules.mongodb_connector import MongoDBConnector
-from modules.json_loader import load_json
+from modules.crypto_utils import decrypt_password
 from modules.time_utils import get_kst_time
+from modules.json_loader import load_json
 from config import MONGODB_SLOWLOG_COLLECTION_NAME, EXEC_TIME
 
-EMOJI_PATTERN = re.compile("["
-                           u"\U0001F600-\U0001F64F"
-                           u"\U0001F300-\U0001F5FF"
-                           u"\U0001F680-\U0001F6FF"
-                           u"\U0001F1E0-\U0001F1FF"
-                           u"\U00002702-\U000027B0"
-                           u"\U000024C2-\U0001F251"
-                           "]+", flags=re.UNICODE)
+# Definitions
+collection = MongoDBConnector.get_database()[MONGODB_SLOWLOG_COLLECTION_NAME]
+pid_time_cache = {}
 
 
-def remove_emoji(string):
-    return EMOJI_PATTERN.sub(r'', string)
+async def query_mysql_instance(instance_name, pool, collection, status_dict):
+    try:
+        current_pids = set()
+        sql_query = """SELECT `ID`, `DB`, `USER`, `HOST`, `TIME`, `INFO`
+                        FROM `information_schema`.`PROCESSLIST`
+                        WHERE info IS NOT NULL
+                        AND DB not in ('information_schema', 'mysql', 'performance_schema')
+                        AND USER not in ('monitor', 'rdsadmin')
+                        ORDER BY `TIME` DESC"""
 
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(sql_query)
+                result = await cur.fetchall()
 
-def clean_sql_text(info: str) -> str:
-    info_no_emoji = remove_emoji(info)
-    info_cleaned = re.sub(r'[\n\t\r]+', ' ', info_no_emoji).strip().encode('utf-8', 'ignore').decode('utf-8')
-    return re.sub(' +', ' ', info_cleaned)
+                for row in result:
+                    pid, db, user, host, time, info = row
+                    current_pids.add(pid)
 
-
-class MySqlMonitor:
-
-    def __init__(self, instance_name: str, details: dict, collection):
-        self.instance_name = instance_name
-        self.details = details
-        self.collection = collection
-        self.pid_time_cache = {}
-
-    async def query_mysql_instance(self, pool):
-        try:
-            utc_now = datetime.now(pytz.utc)
-            current_pids = set()
-            async with pool.acquire() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute(
-                        """SELECT `ID`, `USER`, `HOST`, `DB`, `TIME`, `INFO`
-                           FROM `information_schema`.`PROCESSLIST`
-                           WHERE info IS NOT NULL
-                           AND DB <> 'information_schema'
-                           AND USER <> 'monitor'
-                           ORDER BY `TIME` DESC
-                           """)
-                    result = await cur.fetchall()
-
-                    for row in result:
-                        pid, user, host, db, time, info = row
-                        current_pids.add(pid)
-                        if time < EXEC_TIME:
-                            continue
-                        cache_data = self.pid_time_cache.setdefault(pid, {'max_time': 0})
+                    if time >= EXEC_TIME:
+                        cache_data = pid_time_cache.setdefault((instance_name, pid), {'max_time': 0})
                         cache_data['max_time'] = max(cache_data['max_time'], time)
+                        # Debug
+                        # print(f"{get_kst_time()} - Data cached for instance: {instance_name}, pid: {pid}, max_time: {cache_data['max_time']}")
 
                         if 'start' not in cache_data:
-                            utc_start = utc_now - timedelta(seconds=exec_time)
+                            utc_now = datetime.now(pytz.utc)
+                            utc_start = utc_now - timedelta(seconds=EXEC_TIME)
                             cache_data['start'] = utc_start
 
+                        info_cleaned = re.sub(' +', ' ', info).encode('utf-8', 'ignore').decode('utf-8')
+                        info_cleaned = re.sub(r'[\n\t\r]+', ' ', info_cleaned).strip()
+
                         cache_data['details'] = {
-                            'instance': self.instance_name,
+                            'instance': instance_name,
+                            'db': db,
                             'pid': pid,
                             'user': user,
                             'host': host,
-                            'db': db,
                             'time': time,
-                            'sql_text': clean_sql_text(info)
+                            'sql_text': info_cleaned
                         }
 
-                    for pid, cache_data in list(self.pid_time_cache.items()):
-                        if pid not in current_pids:
-                            existing_doc = await self.collection.find_one({'pid': pid, 'instance': self.instance_name})
-                            if not existing_doc:
-                                data_to_insert = cache_data['details']
-                                data_to_insert['time'] = cache_data['max_time']
-                                data_to_insert['start'] = cache_data['start']
-                                data_to_insert['end'] = utc_now
-                                await self.collection.insert_one(data_to_insert)
-                            del self.pid_time_cache[pid]
+                for (instance, pid), cache_data in list(pid_time_cache.items()):
+                    if pid not in current_pids and instance == instance_name:
+                        data_to_insert = cache_data['details']
+                        data_to_insert['time'] = cache_data['max_time']
+                        data_to_insert['start'] = cache_data['start']
 
-        except Exception as e:
-            print(f"{get_kst_time()} - Error querying instance {self.instance_name}: {e}")
+                        utc_now = datetime.now(pytz.utc)
+                        data_to_insert['end'] = utc_now
 
-        finally:
-            for pid, cache_data in self.pid_time_cache.items():
-                if 'details' in cache_data:
-                    try:
-                        await self.collection.insert_one(cache_data['details'])
-                    except Exception as e:
-                        print(f"{get_kst_time()} - Error saving cached data for PID {pid}: {e}")
+                        # DEBUG
+                        # print(f"{get_kst_time()} - {data_to_insert}")
+                        await collection.insert_one(data_to_insert)
 
-            self.pid_time_cache.clear()
+                        del pid_time_cache[(instance, pid)]
 
-    async def close(self):
-        for instance_name, pool in self.pools.items():
-            if pool is not None:
-                try:
-                    await pool.close()
-                    print(f"{get_kst_time()} - Connection pool closed successfully for {instance_name}")
-                except Exception as e:
-                    print(f"{get_kst_time()} - Error closing connection pool for {instance_name}: {e}")
-
-        self.pools = {}
-
-
-class MySqlPoolManager:
-
-    def __init__(self, instances: list, mongo_collection):
-        self.instances_details = self.parse_instances_from_json(instances)
-        self.monitors = {
-            instance_detail['instance_name']: MySqlMonitor(instance_detail['instance_name'], instance_detail,
-                                                           mongo_collection) for instance_detail in
-            self.instances_details}
-        self.pools = {}
-
-    @staticmethod
-    def parse_instances_from_json(json_data):
-        instances = []
-        for instance_data in json_data:
-            instance_detail = {
-                "instance_name": instance_data["instance_name"],
-                "host": instance_data["host"],
-                "port": instance_data["port"],
-                "user": instance_data["user"],
-                "db": instance_data["db"],
-                "password": decrypt_password(instance_data["password"])
-            }
-            instances.append(instance_detail)
-        return instances
-
-    async def create_connection_pool_for_instance(self, instance_name: str, instance_settings: MySqlMonitor,
-                                                  max_retries=3, delay=5):
-        retries = 0
-        while retries < max_retries:
-            try:
-                self.pools[instance_name] = await asyncmy.create_pool(
-                    host=instance_settings.details['host'],
-                    port=instance_settings.details['port'],
-                    user=instance_settings.details['user'],
-                    password=instance_settings.details['password'],
-                    db=instance_settings.details['db']
-                )
-                print(f"{get_kst_time()} - Connection pool created successfully for {instance_name}")
-                return
-            except Exception as e:
-                retries += 1
-                print(
-                    f"{get_kst_time()} - Attempt {retries} failed to create connection pool for {instance_name}: {str(e)}")
-                if retries < max_retries:
-                    print(f"{get_kst_time()} - Retrying to connect to {instance_name} in {delay} seconds...")
-                    await asyncio.sleep(delay)
-        self.pools[instance_name] = None
-
-    async def create_pools(self):
-        tasks = []
-        for instance_name, instance_settings in self.monitors.items():
-            task = asyncio.create_task(
-                self.create_connection_pool_for_instance(instance_name, instance_settings, max_retries=3, delay=5)
-            )
-            tasks.append(task)
-
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        for instance_name, result in zip(self.monitors.keys(), results):
-            if isinstance(result, Exception):
-                print(f"{get_kst_time()} - Error connecting to {instance_name}: {result}")
-                self.pools[instance_name] = None
-
-    async def run_monitoring(self):
-        while True:
-            tasks = []
-            for monitor_name, pool in self.pools.items():
-                if pool is not None:
-                    task = asyncio.create_task(self.monitors[monitor_name].query_mysql_instance(pool))
-                    tasks.append(task)
-            if tasks:
-                await asyncio.gather(*tasks)
-            await asyncio.sleep(1)  # 1초 대기
-
-    async def close(self):
-        for instance_name, pool in self.pools.items():
-            if pool is not None:
-                await pool.close()
-                print(f"{get_kst_time()} - Connection pool closed successfully for {instance_name}")
-        self.pools = {}
+        await asyncio.sleep(1)
+        # status_dict[instance_name] = "Success"
+    except Exception as e:
+        status_dict[instance_name] = f"Failed: {e}"
 
 
 async def run_mysql_slow_queries():
-    mongodb = MongoDBConnector.get_database()
-    collection = mongodb[MONGODB_SLOWLOG_COLLECTION_NAME]
-
-    instances = load_json('rds_instances.json')
-    manager = MySqlPoolManager(instances, collection)
+    pools = {}
+    instance_status = {}
+    max_retries = 3
     try:
-        await manager.create_pools()
-        await manager.run_monitoring()
-    except KeyboardInterrupt:
-        print(f"{get_kst_time()} - The program was interrupted by a user.")
+        MongoDBConnector.initialize()
+        instances = load_json("rds_instances.json")
+
+        while True:
+            tasks = []
+            for instance_data in instances:
+                instance_name = instance_data["instance_name"]
+                if instance_name in pools and pools[instance_name] is None:
+                    continue
+                host = instance_data["host"]
+                port = instance_data["port"]
+                user = instance_data["user"]
+                db = instance_data["db"]
+                encrypted_password_base64 = instance_data["password"]
+                decrypted_password = decrypt_password(encrypted_password_base64)
+
+                if instance_name not in pools:
+                    for attempt in range(max_retries):
+                        try:
+                            pool = await asyncmy.create_pool(
+                                host=host, port=port, user=user, password=decrypted_password, db=db
+                            )
+                            pools[instance_name] = pool
+                            print(f"{get_kst_time()} - Connection pool created successfully for {instance_name}")
+                            break
+                        except Exception as e:
+                            print(f"{get_kst_time()} - Attempt {attempt + 1} failed for {instance_name}: {e}")
+                            if attempt == max_retries - 1:
+                                pools[instance_name] = None
+                                print(
+                                    f"{get_kst_time()} - Maximum retry attempts reached for {instance_name}. Skipping this instance.")
+
+                if pools.get(instance_name):
+                    tasks.append(query_mysql_instance(instance_name, pools[instance_name], collection, instance_status))
+
+            if tasks:
+                await asyncio.gather(*tasks)
+            # DEBUG
+            # print(f"{get_kst_time()} - Instance Status: {instance_status}")
+
+            await asyncio.sleep(1)
+
+    except asyncio.CancelledError as e:
+        print("{get_kst_time()} - Async task was cancelled. Cleaning up...")
+        for pool_name, pool in pools.items():
+            if pool is not None:
+                try:
+                    await pool.close()
+                except Exception as ex:
+                    print(f"{get_kst_time()} - An error occurred while closing the pool {pool_name}: {ex}")
+
+        print(f"{get_kst_time()} - Resources have been released and program has been terminated safely.")
+        traceback.print_exc()
+
     except Exception as e:
-        print(f"{get_kst_time()} - An error occurred: {e}")
+        print(f"An error occurred: {e}")
+        traceback.print_exc()
+
     finally:
-        await manager.close()
-        MongoDBConnector.client.close()
+        for pool_name, pool in pools.items():
+            if pool is not None:
+                try:
+                    await pool.close()
+                except Exception as e:
+                    print(f"{get_kst_time()} - An error occurred while closing the pool {pool_name}: {e}")
+
+        await asyncio.sleep(0.1)
+
 
 if __name__ == '__main__':
     asyncio.run(run_mysql_slow_queries())
-
