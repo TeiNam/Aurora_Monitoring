@@ -42,6 +42,7 @@
                         <span class="circle5"></span>
                         <span class="text">Download</span>
                     </button>
+                </div>
             </form>
         </section>
     </main>
@@ -52,20 +53,20 @@
 
     <script>
         function getQueryParam(param) {
-            var searchParams = new URLSearchParams(window.location.search);
+            const searchParams = new URLSearchParams(window.location.search);
             return searchParams.get(param);
         }
 
-        var defaultPid = getQueryParam('pid');
+        const defaultPid = getQueryParam('pid');
         if (defaultPid) {
             document.getElementById('pid').value = defaultPid;
         }
 
         document.getElementById('saveExplain').addEventListener('click', function(event) {
-            var pid = document.getElementById('pid').value;
-            var protocol = window.location.protocol;
-            var host = window.location.host;
-            var apiUrl = `${protocol}//${host}/api/mysql_explain/explain?pid=${pid}`;
+            const pid = document.getElementById('pid').value;
+            const protocol = window.location.protocol;
+            const host = window.location.host;
+            const apiUrl = `${protocol}//${host}/api/mysql_explain/explain?pid=${pid}`;
 
             fetch(apiUrl, {
                 method: 'POST',
@@ -86,10 +87,10 @@
         });
 
         document.getElementById('downloadLog').addEventListener('click', function(event) {
-            var pid = document.getElementById('pid').value;
-            var protocol = window.location.protocol;
-            var host = window.location.host;
-            var apiUrl = `${protocol}//${host}/api/mysql_explain/download?pid=${pid}`;
+            const pid = document.getElementById('pid').value;
+            const protocol = window.location.protocol;
+            const host = window.location.host;
+            const apiUrl = `${protocol}//${host}/api/mysql_explain/download?pid=${pid}`;
 
             fetch(apiUrl)
                 .then(response => {
@@ -99,8 +100,8 @@
                     return response.blob();
                 })
                 .then(blob => {
-                    var url = window.URL.createObjectURL(blob);
-                    var a = document.createElement('a');
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
                     a.href = url;
                     a.download = `slowlog_pid_${pid}.md`;
                     document.body.appendChild(a);
@@ -113,7 +114,7 @@
                 });
         });
 
-        var pageInfo = {
+        const pageInfo = {
             author: "DBRE & DA \"Tei\"",  // 작성자
             copyrightYear: "2023-12-01" // 만든 날짜
         };

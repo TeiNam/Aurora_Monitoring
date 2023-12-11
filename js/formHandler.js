@@ -2,13 +2,24 @@ async function loadInstanceList() {
     try {
         const response = await fetch('/api/instance_setup/list_instances/');
         if (!response.ok) {
-            throw new Error('Failed to fetch instance data');
+            alert('Instance data를 불러오는 데 실패했습니다.');
+            return;
         }
         const data = await response.json();
+
+        if (!data.instances || !Array.isArray(data.instances)) {
+            alert('Instance 데이터가 유효하지 않습니다.');
+            return;
+        }
         const tableBody = document.getElementById('instanceTable').getElementsByTagName('tbody')[0];
         tableBody.innerHTML = '';
 
         data.instances.forEach(instance => {
+            if (!instance.cluster_name || !instance.instance_name) {
+                console.error('Invalid instance data:', instance);
+                return;
+            }
+
             const row = tableBody.insertRow();
             row.insertCell().textContent = instance.region;
             row.insertCell().textContent = instance.cluster_name;
@@ -23,6 +34,7 @@ async function loadInstanceList() {
         });
     } catch (error) {
         console.error('Error:', error);
+        alert('Error loading instance list: ' + error.message);
     }
 }
 
@@ -34,11 +46,12 @@ async function deleteInstance(instanceName) {
             method: 'DELETE'
         });
         if (!response.ok) {
-            throw new Error('Failed to delete instance');
+            alert('Instance 삭제에 실패했습니다. 다시 시도해 주세요.');
+            return;
         }
         const data = await response.json();
         alert(data.message);
-        loadInstanceList();
+        await loadInstanceList();
     } catch (error) {
         console.error('Error:', error);
         alert('Error: ' + error.message);
@@ -78,7 +91,7 @@ document.getElementById('rdsForm').onsubmit = async (e) => {
         });
         if(response.ok) {
             alert('RDS Instance added successfully!');
-            loadInstanceList();
+            await loadInstanceList();
         } else {
             alert('Failed to add RDS Instance.');
         }
@@ -87,6 +100,12 @@ document.getElementById('rdsForm').onsubmit = async (e) => {
     }
 };
 
-window.onload = function() {
-    loadInstanceList();
+window.onload = async function() {
+    try {
+        await loadInstanceList();
+    } catch (error) {
+        console.error('Error in loadInstanceList:', error);
+        alert('Instance list를 불러오는 데 실패했습니다.');
+    }
 };
+
