@@ -1,6 +1,7 @@
 import uvicorn
 from starlette.staticfiles import StaticFiles
 from fastapi import FastAPI, Request
+from fastapi.responses import Response
 from fastapi.templating import Jinja2Templates
 from modules.mongodb_connector import MongoDBConnector
 from modules.time_utils import get_kst_time
@@ -19,6 +20,11 @@ app = FastAPI()
 app.mount("/css", StaticFiles(directory="css"), name="css")
 app.mount("/js", StaticFiles(directory="js"), name="js")
 templates = Jinja2Templates(directory="templates")
+
+
+@app.get("/favicon.ico")
+async def get_favicon():
+    return Response(content="", media_type="image/x-icon")
 
 
 @app.on_event("startup")
