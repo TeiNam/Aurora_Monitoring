@@ -31,20 +31,34 @@ class SQLQueryExecutor:
         return re.sub(r'/\*.*?\*/', '', sql_text, flags=re.DOTALL)
 
     @staticmethod
-    def execute(rds_info, sql_text):
+    def validate_sql_query(sql_text):
+        query_without_comments = SQLQueryExecutor.remove_sql_comments(sql_text).strip()
+
+        if not query_without_comments.lower().startswith("select"):
+            raise ValueError("SELECT 쿼리만 가능합니다.")
+
+        if "into" in query_without_comments.lower().split("from")[0]:
+            raise ValueError("SELECT ... INTO ... FROM 형태의 프로시저 쿼리는 실행할 수 없습니다.")
+
+        return query_without_comments
+
+    @staticmethod
+    def execute(rds_info, sql_text, db_name):
         decrypted_password = decrypt_password(rds_info["password"])
-        sql_text_without_comments = SQLQueryExecutor.remove_sql_comments(sql_text)
+
         try:
+            validated_sql = SQLQueryExecutor.validate_sql_query(sql_text)
+
             connection = pymysql.connect(
                 host=rds_info["host"],
                 port=rds_info["port"],
                 user=rds_info["user"],
                 password=decrypted_password,
-                database=rds_info["db"],
+                database=db_name,
                 cursorclass=pymysql.cursors.DictCursor
             )
             with connection.cursor() as cursor:
-                explain_query = f"EXPLAIN FORMAT=JSON {sql_text_without_comments}"
+                explain_query = f"EXPLAIN FORMAT=JSON {validated_sql}"
                 cursor.execute(explain_query)
                 execution_plan = cursor.fetchall()
             connection.close()
@@ -91,7 +105,8 @@ async def execute_sql(
     if not rds_info:
         raise HTTPException(status_code=400, detail="instance_name에 해당하는 RDS 인스턴스 정보를 찾을 수 없습니다.")
 
-    execution_plan_raw = SQLQueryExecutor.execute(rds_info, document["sql_text"])
+    document_db = document["db"]
+    execution_plan_raw = SQLQueryExecutor.execute(rds_info, document["sql_text"], document_db)
     execution_plan = json.loads(execution_plan_raw[0]['EXPLAIN'])
 
     query_plan_document = {
