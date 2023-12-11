@@ -15,7 +15,6 @@ class MetricFetcher:
 
     def __init__(self, db):
         self.db = db
-        asyncio.run(self.initialize_indexes())
 
     async def initialize_indexes(self):
         for metric_name in METRICS:
@@ -85,6 +84,7 @@ async def run_aurora_metrics():
     try:
         mongo_client = MongoDBConnector.get_database()
         metric_fetcher = MetricFetcher(mongo_client)
+        await metric_fetcher.initialize_indexes()
         await metric_fetcher.fetch_and_store_metrics()
     except Exception as e2:
         print(f"{get_kst_time()} - An error occurred: {e2}")

@@ -1,25 +1,23 @@
 import re
 import sqlparse
 import json
-import os
+import pymysql.cursors
 from fastapi import FastAPI, HTTPException, Query, Response, Depends
+from datetime import datetime, timezone
+
 from modules.mongodb_connector import MongoDBConnector
 from modules.json_loader import load_json
 from modules.crypto_utils import decrypt_password
-from datetime import datetime, timezone
-import pymysql.cursors
+from config import MONGODB_SLOWLOG_COLLECTION_NAME, MONGODB_PLAN_COLLECTION_NAME
 
 app = FastAPI()
-
-MONGODB_COLLECTION_NAME = os.getenv("MONGODB_SLOWLOG_COLLECTION_NAME")
-MONGODB_PLAN_COLLECTION_NAME = os.getenv("MONGODB_PLAN_COLLECTION_NAME")
 
 rds_instances = load_json("rds_instances.json")
 
 
 def get_collection():
     db = MongoDBConnector.get_database()
-    return db[MONGODB_COLLECTION_NAME]
+    return db[MONGODB_SLOWLOG_COLLECTION_NAME]
 
 
 def get_plan_collection():

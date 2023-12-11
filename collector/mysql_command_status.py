@@ -12,14 +12,14 @@ from config import MONGODB_STATUS_COLLECTION_NAME
 async def query_mysql_status(connection, query_string, single_row=False):
     try:
         async with connection.cursor() as cur:
-            await cur.execute(query_string);
+            await cur.execute(query_string)
             if single_row:
                 result = await cur.fetchone()
                 return int(result[1]) if result else 0
             else:
                 return {row[0]: row[1] for row in await cur.fetchall()}
-    except Exception as e:
-        print(f"{get_kst_time()} - Failed to query MySQL status: {e}")
+    except Exception as e1:
+        print(f"{get_kst_time()} - Failed to query MySQL status: {e1}")
         return None
 
 
@@ -86,8 +86,8 @@ async def handle_instance(instance, collection):
         )
         await query_instance_and_save_to_db(connection, instance, collection)
         await connection.ensure_closed()
-    except Exception as e:
-        print(f"{get_kst_time()} - Failed to handle instance: {e}")
+    except Exception as e2:
+        print(f"{get_kst_time()} - Failed to handle instance: {e2}")
 
 
 async def run_mysql_command_status():
@@ -100,8 +100,9 @@ async def run_mysql_command_status():
 
     MongoDBConnector.client.close()
 
+
 if __name__ == '__main__':
     try:
         asyncio.run(run_mysql_command_status())
-    except Exception as e:
-        print(f"{get_kst_time()} - An error occurred: {e}")
+    except Exception as ex:
+        print(f"{get_kst_time()} - An error occurred: {ex}")

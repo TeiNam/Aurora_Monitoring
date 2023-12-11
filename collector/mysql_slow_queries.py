@@ -40,12 +40,15 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                         cache_data = pid_time_cache.setdefault((instance_name, pid), {'max_time': 0})
                         cache_data['max_time'] = max(cache_data['max_time'], time)
                         # Debug
-                        # print(f"{get_kst_time()} - Data cached for instance: {instance_name}, pid: {pid}, max_time: {cache_data['max_time']}")
+                        # print(f"{get_kst_time()} - Data cached for instance: {instance_name},
+                        # pid: {pid},
+                        # max_time: {cache_data['max_time']}")
 
                         if 'start' not in cache_data:
                             utc_now = datetime.now(pytz.utc)
-                            utc_start = utc_now - timedelta(seconds=EXEC_TIME)
-                            cache_data['start'] = utc_start
+                            utc_start_timestamp = int((utc_now - timedelta(seconds=EXEC_TIME)).timestamp())
+                            utc_start_datetime = datetime.fromtimestamp(utc_start_timestamp, pytz.utc)
+                            cache_data['start'] = utc_start_datetime
 
                         info_cleaned = re.sub(' +', ' ', info).encode('utf-8', 'ignore').decode('utf-8')
                         info_cleaned = re.sub(r'[\n\t\r]+', ' ', info_cleaned).strip()
@@ -85,8 +88,10 @@ async def run_mysql_slow_queries():
     pools = {}
     instance_status = {}
     max_retries = 3
+
     try:
         MongoDBConnector.initialize()
+
         instances = load_json("rds_instances.json")
 
         while True:
@@ -116,7 +121,8 @@ async def run_mysql_slow_queries():
                             if attempt == max_retries - 1:
                                 pools[instance_name] = None
                                 print(
-                                    f"{get_kst_time()} - Maximum retry attempts reached for {instance_name}. Skipping this instance.")
+                                    f"{get_kst_time()} - Maximum retry attempts reached for {instance_name}. "
+                                    f"Skipping this instance.")
 
                 if pools.get(instance_name):
                     tasks.append(query_mysql_instance(instance_name, pools[instance_name], collection, instance_status))
@@ -129,20 +135,20 @@ async def run_mysql_slow_queries():
 
             await asyncio.sleep(1)
 
-    except asyncio.CancelledError as e:
+    except asyncio.CancelledError:
         print("{get_kst_time()} - Async task was cancelled. Cleaning up...")
         for pool_name, pool in pools.items():
             if pool is not None:
                 try:
                     await pool.close()
-                except Exception as ex:
-                    print(f"{get_kst_time()} - An error occurred while closing the pool {pool_name}: {ex}")
+                except Exception as e1:
+                    print(f"{get_kst_time()} - An error occurred while closing the pool {pool_name}: {e1}")
 
         print(f"{get_kst_time()} - Resources have been released and program has been terminated safely.")
         traceback.print_exc()
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    except Exception as e2:
+        print(f"An error occurred: {e2}")
         traceback.print_exc()
 
     finally:
@@ -150,8 +156,8 @@ async def run_mysql_slow_queries():
             if pool is not None:
                 try:
                     await pool.close()
-                except Exception as e:
-                    print(f"{get_kst_time()} - An error occurred while closing the pool {pool_name}: {e}")
+                except Exception as ex:
+                    print(f"{get_kst_time()} - An error occurred while closing the pool {pool_name}: {ex}")
 
         await asyncio.sleep(0.1)
 
