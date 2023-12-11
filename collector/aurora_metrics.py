@@ -11,8 +11,32 @@ rds_instances_data = load_json('rds_instances.json')
 
 
 class MetricFetcher:
+    index_cache = set()
+
     def __init__(self, db):
         self.db = db
+        asyncio.run(self.initialize_indexes())
+
+    async def initialize_indexes(self):
+        for metric_name in METRICS:
+            collection = self.db[metric_name]
+            indexes = [
+                ("region", f"{metric_name}_region_1_IDX", None),
+                ("instance_name", f"{metric_name}_instance_name_1_IDX", None),
+                ("timestamp", f"{metric_name}_TTL_31days_IDX", {"expireAfterSeconds":  2678400}),
+            ]
+
+            for field, index, options in indexes:
+                if index not in MetricFetcher.index_cache:
+                    await self.ensure_index_exists(collection, field, index, options)
+                    MetricFetcher.index_cache.add(index)
+
+    async def ensure_index_exists(self, collection, index_field, index_name, index_options=None):
+        if index_name in MetricFetcher.index_cache:
+            return
+
+        index_options = index_options or {}
+        await collection.create_index([(index_field, 1)], name=index_name, **index_options)
 
     async def fetch_and_store_metrics(self):
         while True:
@@ -45,15 +69,6 @@ class MetricFetcher:
 
                 collection = self.db[metric_name]
 
-                indexes = [
-                    ("region", f"{metric_name}_region_1_IDX", None),
-                    ("instance_name", f"{metric_name}_instance_name_1_IDX", None),
-                    ("timestamp", f"{metric_name}_TTL_90days_IDX", {"expireAfterSeconds": 7776000}),
-                ]
-
-                for field, index, options in indexes:
-                    await self.ensure_index_exists(collection, field, index, options)
-
                 if response['Datapoints']:
                     document = OrderedDict([
                         ("region", region),
@@ -62,14 +77,8 @@ class MetricFetcher:
                         ("timestamp", end_time)
                     ])
                     await collection.insert_one(document)
-        except Exception as e:
-            print(f"{get_kst_time()} - Error fetching/storing metric {metric_name} for instance {instance_name}: {e}")
-
-    async def ensure_index_exists(self, collection, index_field, index_name, index_options=None):
-        index_options = index_options or {}
-        index_info = await collection.index_information()
-        if index_name not in index_info:
-            await collection.create_index([(index_field, 1)], name=index_name, **index_options)
+        except Exception as e1:
+            print(f"{get_kst_time()} - Error fetching/storing metric {metric_name} for instance {instance_name}: {e1}")
 
 
 async def run_aurora_metrics():
@@ -77,11 +86,11 @@ async def run_aurora_metrics():
         mongo_client = MongoDBConnector.get_database()
         metric_fetcher = MetricFetcher(mongo_client)
         await metric_fetcher.fetch_and_store_metrics()
-    except Exception as e:
-        print(f"{get_kst_time()} - An error occurred: {e}")
+    except Exception as e2:
+        print(f"{get_kst_time()} - An error occurred: {e2}")
 
 if __name__ == '__main__':
     try:
         asyncio.run(run_aurora_metrics())
-    except Exception as e:
-        print(f"{get_kst_time()} - An error occurred: {e}")
+    except Exception as ex:
+        print(f"{get_kst_time()} - An error occurred: {ex}")
