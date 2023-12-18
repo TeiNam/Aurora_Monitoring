@@ -50,7 +50,13 @@ async def main():
     # mysql_command_status를 매일 자정에 실행
     command_status_task = asyncio.create_task(run_daily_at_midnight(run_mysql_command_status))
 
-    await asyncio.gather(aurora_task, slow_queries_task, command_status_task)
+    # 예외가 발생해도 다른 태스크에 영향을 주지 않도록 함
+    await asyncio.gather(
+        aurora_task,
+        slow_queries_task,
+        command_status_task,
+        return_exceptions=True
+    )
 
 if __name__ == '__main__':
     try:
