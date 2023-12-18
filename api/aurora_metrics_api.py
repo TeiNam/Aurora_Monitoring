@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from config import METRICS
 from modules.mongodb_connector import MongoDBConnector
 from modules.json_loader import load_json
+from pytz import timezone
 
 app = FastAPI()
 
@@ -13,6 +14,14 @@ except HTTPException as e:
     rds_instances_data = []
 
 all_instance_names = [instance['instance_name'] for instance in rds_instances_data]
+
+
+def convert_utc_to_kst(utc_dt):
+    utc_zone = timezone('UTC')
+    kst_zone = timezone('Asia/Seoul')
+    utc_dt = utc_zone.localize(utc_dt)
+    kst_dt = utc_dt.astimezone(kst_zone)
+    return kst_dt
 
 
 def get_metric_collection(metric_name: str):
@@ -44,5 +53,10 @@ async def read_metrics(
 
     cursor = collection.find(query, {"_id": 0})
     metrics = await cursor.to_list(None)
+
+    # Convert timestamp from UTC to KST
+    for metric in metrics:
+        if 'timestamp' in metric:
+            metric['timestamp'] = convert_utc_to_kst(metric['timestamp'])
 
     return metrics
