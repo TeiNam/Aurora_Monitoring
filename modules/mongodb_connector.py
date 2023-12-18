@@ -1,3 +1,4 @@
+import motor
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import MONGODB_URI, MONGODB_DB_NAME
 
@@ -17,6 +18,12 @@ class MongoDBConnector:
         if not cls.client:
             cls.initialize()
         return cls.db
+
+    @staticmethod
+    async def get_client():
+        if MongoDBConnector.client is None or MongoDBConnector.client.is_closed():
+            MongoDBConnector.client = await motor.motor_asyncio.AsyncIOMotorClient('mongodb_uri')
+        return MongoDBConnector.client
 
 
 MongoDBConnector.initialize()
