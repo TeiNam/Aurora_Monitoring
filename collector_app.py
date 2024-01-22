@@ -1,6 +1,5 @@
 import asyncio
 import pytz
-from collector.aurora_metrics import run_aurora_metrics
 from collector.mysql_slow_queries import run_mysql_slow_queries
 from collector.mysql_command_status import run_mysql_command_status
 from datetime import datetime, timedelta
@@ -45,15 +44,14 @@ async def run_periodically(task_func, interval_seconds):
 async def main():
     # aurora_metrics와 mysql_slow_queries는 예외 발생 시 재시작
     slow_queries_task = asyncio.create_task(run_with_restart(run_mysql_slow_queries))
-    aurora_task = asyncio.create_task(run_with_restart(run_aurora_metrics))
 
     # mysql_command_status를 매일 자정에 실행
     command_status_task = asyncio.create_task(run_daily_at_midnight(run_mysql_command_status))
 
     # 예외가 발생해도 다른 태스크에 영향을 주지 않도록 함
     await asyncio.gather(
-        aurora_task,
         slow_queries_task,
+        get_digest_task,
         command_status_task,
         return_exceptions=True
     )

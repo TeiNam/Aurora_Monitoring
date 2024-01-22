@@ -11,7 +11,6 @@ api_mapping = {
     "/api/instance_setup": "api.instance_setup_api",
     "/api/aws_rds": "api.aws_rds_status_api",
     "/api/mysql_status": "api.mysql_com_status_api",
-    "/api/aurora_status": "api.aurora_metrics_api",
     "/api/mysql_slow_query": "api.mysql_slow_queries_api",
     "/api/mysql_explain": "api.mysql_slow_query_explain_api",
 }
