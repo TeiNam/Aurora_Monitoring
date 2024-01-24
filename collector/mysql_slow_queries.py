@@ -46,14 +46,12 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                         cache_data = pid_time_cache.setdefault((instance_name, pid), {'max_time': 0})
                         cache_data['max_time'] = max(cache_data['max_time'], time)
                         # Debug
-                        # print(f"{get_kst_time()} - Data cached for instance: {instance_name},
-                        # pid: {pid},
-                        # max_time: {cache_data['max_time']}")
+                        #print(f"{get_kst_time()} - Data cached for instance: {instance_name}, pid: {pid}, max_time: {cache_data['max_time']}")
 
                         if 'start' not in cache_data:
                             utc_now = datetime.now(pytz.utc)
                             utc_start_timestamp = int((utc_now - timedelta(seconds=EXEC_TIME)).timestamp())
-                            utc_start_datetime = datetime.fromtimestamp(utc_start_timestamp, pytz.utc)
+                            utc_start_datetime: datetime = datetime.fromtimestamp(utc_start_timestamp, pytz.utc)
                             cache_data['start'] = utc_start_datetime
 
                         info_cleaned = re.sub(' +', ' ', info).encode('utf-8', 'ignore').decode('utf-8')
@@ -84,15 +82,15 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                             await collection.insert_one(data_to_insert)
 
                             # 슬랙 노티 모듈을 통한 알림 발송
-                            user_email = f"{data_to_insert['user']}@millie.town"
+                            user_email = f"{data_to_insert['user']}@example.com"
                             if data_to_insert['user'].lower() in allowed_users:
                                 db_info = data_to_insert.get('db', '알 수 없는 DB')
                                 instance_info = data_to_insert.get('instance', '알 수 없는 Instance')
-                                slack_title = "[SlowQuery Alert]"
+                                slack_title = "[테스트 중 SlowQuery Alert]"
                                 slack_message = f"님이 실행한 SQL쿼리가\n *{instance_info}*, *{db_info}* DB에서 *{data_to_insert['time']}* 초 동안 실행 되었습니다.\n 쿼리 검수 및 실행 시 주의가 필요합니다."
                                 await send_slack_notification(user_email, slack_title, slack_message)
 
-                    del pid_time_cache[(instance, pid)]
+                        del pid_time_cache[(instance, pid)]
 
         await asyncio.sleep(1)
         status_dict[instance_name] = "Success"
