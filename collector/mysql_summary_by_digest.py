@@ -11,7 +11,6 @@ from modules.json_loader import load_json
 from config import MONGODB_DIGEST_COLLECTION_NAME
 
 # Definitions
-collection = MongoDBConnector.get_database()[MONGODB_DIGEST_COLLECTION_NAME]
 pid_time_cache = {}
 
 
@@ -80,7 +79,11 @@ async def run_gather_digest():
     max_retries = 3
 
     try:
-        MongoDBConnector.initialize()
+        await MongoDBConnector.initialize()
+
+        db = await MongoDBConnector.get_database()
+        collection = db[MONGODB_DIGEST_COLLECTION_NAME]
+
         instances = load_json("rds_instances.json")
         tasks = []
 
@@ -138,4 +141,4 @@ async def run_gather_digest():
         print(f"{get_kst_time()} - Script completed and resources have been released.")
 
 if __name__ == '__main__':
-        asyncio.run(run_gather_digest())
+    asyncio.run(run_gather_digest())

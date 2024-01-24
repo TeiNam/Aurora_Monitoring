@@ -6,7 +6,7 @@ app = FastAPI()
 
 
 async def get_command_status(instance_name):
-    db = MongoDBConnector.get_database()
+    db = await MongoDBConnector.get_database()
     collection = db[MONGODB_STATUS_COLLECTION_NAME]
     document = await collection.find_one({'instance_name': instance_name}, {'_id': 0})
     return document

@@ -6,7 +6,7 @@ from modules.mongodb_connector import MongoDBConnector
 
 app = FastAPI()
 
-MONGODB_COLLECTION_NAME = os.getenv("MONGODB_SLOWLOG_COLLECTION_NAME")
+MONGODB_SLOWLOG_COLLECTION_NAME = os.getenv("MONGODB_SLOWLOG_COLLECTION_NAME")
 kst_delta = timedelta(hours=9)
 
 
@@ -22,13 +22,10 @@ class Item(BaseModel):
     end: datetime = Field(alias="end")
 
 
-def get_database():
-    return MongoDBConnector.get_database()
-
-
 @app.get("/items/")
-async def get_items(days: int = Query(None, alias="days"), db=Depends(get_database)):
-    collection = db[MONGODB_COLLECTION_NAME]
+async def get_items(days: int = Query(None, alias="days")):
+    db = await MongoDBConnector.get_database()
+    collection = db[MONGODB_SLOWLOG_COLLECTION_NAME]
     items = []
     query = {}
     sort = [("_id", -1)]

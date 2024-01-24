@@ -15,13 +15,13 @@ app = FastAPI()
 rds_instances = load_json("rds_instances.json")
 
 
-def get_collection():
-    db = MongoDBConnector.get_database()
+async def get_collection():
+    db = await MongoDBConnector.get_database()
     return db[MONGODB_SLOWLOG_COLLECTION_NAME]
 
 
-def get_plan_collection():
-    db = MongoDBConnector.get_database()
+async def get_plan_collection():
+    db = await MongoDBConnector.get_database()
     return db[MONGODB_PLAN_COLLECTION_NAME]
 
 
@@ -91,10 +91,10 @@ class RDSInstanceManager:
 
 
 @app.post("/explain")
-async def execute_sql(
-        pid: int = Query(..., description="The PID to lookup"),
-        collection=Depends(get_collection),
-        plan_collection=Depends(get_plan_collection)):
+async def execute_sql(pid: int = Query(..., description="The PID to lookup")):
+    collection = await get_collection()
+    plan_collection = await get_plan_collection()
+
     if not pid:
         raise HTTPException(status_code=422, detail="PID is required")
     document = await collection.find_one({"pid": pid})
@@ -125,9 +125,9 @@ async def execute_sql(
 
 
 @app.get("/download", response_class=Response)
-async def download_markdown(
-        pid: int = Query(...),
-        plan_collection=Depends(get_plan_collection)):
+async def download_markdown(pid: int = Query(...)):
+    plan_collection = await get_plan_collection()
+
     cursor = plan_collection.find({"pid": pid})
     markdown_content = ""
     async for document in cursor:

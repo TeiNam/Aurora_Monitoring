@@ -91,7 +91,9 @@ async def handle_instance(instance, collection):
 
 
 async def run_mysql_command_status():
-    mongodb = MongoDBConnector.get_database()
+    await MongoDBConnector.initialize()
+
+    mongodb = await MongoDBConnector.get_database()
     collection = mongodb[MONGODB_STATUS_COLLECTION_NAME]
 
     instances = load_json('rds_instances.json')

@@ -51,7 +51,6 @@ async def main():
     # 예외가 발생해도 다른 태스크에 영향을 주지 않도록 함
     await asyncio.gather(
         slow_queries_task,
-        get_digest_task,
         command_status_task,
         return_exceptions=True
     )

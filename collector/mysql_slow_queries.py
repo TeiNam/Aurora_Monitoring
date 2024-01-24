@@ -2,18 +2,24 @@ import asyncio
 import asyncmy
 import pytz
 import re
+import os
 import traceback
 from datetime import datetime, timedelta
 
 # Local imports
+from dotenv import load_dotenv
 from modules.mongodb_connector import MongoDBConnector
 from modules.crypto_utils import decrypt_password
 from modules.time_utils import get_kst_time
 from modules.json_loader import load_json
+from modules.slack_noti import send_slack_notification
 from config import MONGODB_SLOWLOG_COLLECTION_NAME, EXEC_TIME
 
-# Definitions
-collection = MongoDBConnector.get_database()[MONGODB_SLOWLOG_COLLECTION_NAME]
+load_dotenv()
+
+allowed_users_env = os.getenv("ALLOWED_USERS", "")
+allowed_users = [user.strip() for user in allowed_users_env.split(',') if user.strip()]
+
 pid_time_cache = {}
 
 
@@ -74,9 +80,19 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
 
                         # DEBUG
                         # print(f"{get_kst_time()} - {data_to_insert}")
-                        await collection.insert_one(data_to_insert)
+                        if not await collection.find_one({'_id': data_to_insert.get('_id')}):
+                            await collection.insert_one(data_to_insert)
 
-                        del pid_time_cache[(instance, pid)]
+                            # 슬랙 노티 모듈을 통한 알림 발송
+                            user_email = f"{data_to_insert['user']}@millie.town"
+                            if data_to_insert['user'].lower() in allowed_users:
+                                db_info = data_to_insert.get('db', '알 수 없는 DB')
+                                instance_info = data_to_insert.get('instance', '알 수 없는 Instance')
+                                slack_title = "[SlowQuery Alert]"
+                                slack_message = f"님이 실행한 SQL쿼리가\n *{instance_info}*, *{db_info}* DB에서 *{data_to_insert['time']}* 초 동안 실행 되었습니다.\n 쿼리 검수 및 실행 시 주의가 필요합니다."
+                                await send_slack_notification(user_email, slack_title, slack_message)
+
+                    del pid_time_cache[(instance, pid)]
 
         await asyncio.sleep(1)
         status_dict[instance_name] = "Success"
@@ -90,7 +106,10 @@ async def run_mysql_slow_queries():
     max_retries = 3
 
     try:
-        MongoDBConnector.initialize()
+        await MongoDBConnector.initialize()
+
+        db = await MongoDBConnector.get_database()
+        collection = db[MONGODB_SLOWLOG_COLLECTION_NAME]
 
         instances = load_json("rds_instances.json")
 

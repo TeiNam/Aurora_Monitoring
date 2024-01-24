@@ -27,14 +27,15 @@ async def get_favicon():
 
 
 @app.on_event("startup")
-async def startup_event():
-    MongoDBConnector.initialize()
+async def on_startup():
+    await MongoDBConnector.initialize()
     print(f"{get_kst_time()} - MongoDB connection established successfully.")
 
 
 @app.on_event("shutdown")
-async def shutdown_event():
-    MongoDBConnector.client.close()
+async def on_shutdown():
+    if MongoDBConnector.client:
+        await MongoDBConnector.client.close()
     print(f"{get_kst_time()} - MongoDB connection closed.")
 
 
