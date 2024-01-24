@@ -86,7 +86,7 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                             if data_to_insert['user'].lower() in allowed_users:
                                 db_info = data_to_insert.get('db', '알 수 없는 DB')
                                 instance_info = data_to_insert.get('instance', '알 수 없는 Instance')
-                                slack_title = "[테스트 중 SlowQuery Alert]"
+                                slack_title = "[SlowQuery Alert]"
                                 slack_message = f"님이 실행한 SQL쿼리가\n *{instance_info}*, *{db_info}* DB에서 *{data_to_insert['time']}* 초 동안 실행 되었습니다.\n 쿼리 검수 및 실행 시 주의가 필요합니다."
                                 await send_slack_notification(user_email, slack_title, slack_message)
 
