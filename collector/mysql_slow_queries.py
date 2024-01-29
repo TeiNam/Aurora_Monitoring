@@ -82,7 +82,7 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                             await collection.insert_one(data_to_insert)
 
                             # 슬랙 노티 모듈을 통한 알림 발송
-                            user_email = f"{data_to_insert['user']}@millie.town"
+                            user_email = f"{data_to_insert['user']}@example.com"
                             if data_to_insert['user'].lower() in allowed_users:
                                 db_info = data_to_insert.get('db', '알 수 없는 DB')
                                 instance_info = data_to_insert.get('instance', '알 수 없는 Instance')
