@@ -35,6 +35,10 @@ async function loadMemoList() {
             contentCell.className = 'memo-content-cell';
             contentCell.textContent = memo.content;
 
+            contentCell.addEventListener('dblclick', function() {
+                selectText(contentCell);
+            });
+
             const deleteCell = row.insertCell();
             deleteCell.className = 'delete-cell';
 
@@ -82,5 +86,17 @@ async function deleteMemo(memoId) {
     }
 }
 
-
+function selectText(cell) {
+    if (document.body.createTextRange) { // IE용 코드
+        const range = document.body.createTextRange();
+        range.moveToElementText(cell);
+        range.select();
+    } else if (window.getSelection) { // 비IE용 코드
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+}
 
