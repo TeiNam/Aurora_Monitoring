@@ -82,12 +82,13 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                             await collection.insert_one(data_to_insert)
 
                             # 슬랙 노티 모듈을 통한 알림 발송
-                            user_email = f"{data_to_insert['user']}@example.com"
+                            user_email = f"{data_to_insert['user']}@millie.town"
                             if data_to_insert['user'].lower() in allowed_users:
                                 db_info = data_to_insert.get('db', '알 수 없는 DB')
                                 instance_info = data_to_insert.get('instance', '알 수 없는 Instance')
+                                pid_info = data_to_insert.get('pid')
                                 slack_title = "[SlowQuery Alert]"
-                                slack_message = f"님이 실행한 SQL쿼리가\n *{instance_info}*, *{db_info}* DB에서 *{data_to_insert['time']}* 초 동안 실행 되었습니다.\n 쿼리 검수 및 실행 시 주의가 필요합니다."
+                                slack_message = f"님이 실행한 SQL쿼리(PID: {pid_info})가\n *{instance_info}*, *{db_info}* DB에서 *{data_to_insert['time']}* 초 동안 실행 되었습니다.\n 쿼리 검수 및 실행 시 주의가 필요합니다. \n http://172.30.111.48:8000/sql-plan?pid={pid_info}"
                                 await send_slack_notification(user_email, slack_title, slack_message)
 
                         del pid_time_cache[(instance, pid)]
@@ -95,7 +96,11 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
         await asyncio.sleep(1)
         status_dict[instance_name] = "Success"
     except Exception as e:
-        status_dict[instance_name] = f"Failed: {e}"
+        if "Cannot use MongoClient after close" in str(e):
+            await MongoDBConnector.reconnect()
+            status_dict[instance_name] = "Reconnected to MongoDB"
+        else:
+            status_dict[instance_name] = f"Failed: {e}"
 
 
 async def run_mysql_slow_queries():
