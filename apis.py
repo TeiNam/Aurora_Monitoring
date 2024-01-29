@@ -13,6 +13,7 @@ api_mapping = {
     "/api/mysql_status": "api.mysql_com_status_api",
     "/api/mysql_slow_query": "api.mysql_slow_queries_api",
     "/api/mysql_explain": "api.mysql_slow_query_explain_api",
+    "/api/memo": "api.memo_api",
 }
 
 app = FastAPI()
@@ -47,6 +48,12 @@ async def sql_explain(request: Request):
 @app.get("/instance-setup")
 async def instance_setup(request: Request):
     return templates.TemplateResponse("instance_setup.html", {"request": request})
+
+
+@app.get("/memo")
+async def memo_page(request: Request):
+    return templates.TemplateResponse("memo.html", {"request": request})
+
 
 # Mounting the APIs
 for route, module_name in api_mapping.items():

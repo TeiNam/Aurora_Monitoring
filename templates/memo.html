@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Memo Application</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/custom.css">
+    <style>
+        .input-field {
+            height: 4em;
+            text-align: left;
+            vertical-align: middle;
+            background-color: #333333;
+            color: white;
+        }
+
+        .memo-list-container {
+            width: 100%; /* 컨테이너의 너비를 100%로 설정 */
+        }
+    </style>
+    <script src="/js/memo.js" defer></script>
+</head>
+<body>
+    <div id="content">
+        <h1 id="heading">Memo Application</h1>
+        <div class="form-container">
+            <h2>Input text</h2>
+            <div class="form">
+                <textarea id="memoContent" class="input-field" placeholder="Enter Memo text" style="height: 527px"></textarea>
+                <div class="btn">
+                    <button class="button4" onclick="addMemo()">
+                        <span class="circle1"></span>
+                        <span class="circle2"></span>
+                        <span class="circle3"></span>
+                        <span class="circle4"></span>
+                        <span class="circle5"></span>
+                        <span class="text">Submit</span>
+                    </button>
+                </div>
+            </div>
+            <div class="memo-list-container">
+                <h2>Memo List</h2>
+                <table id="memoList" style="width: 100%;">
+                    <colgroup>
+                        <col style="width: 90%;"> <!-- 메모 내용 열 -->
+                        <col style="width: 10%;"> <!-- 삭제 버튼 열 -->
+                    </colgroup>
+                    <tbody>
+                    <!-- loadMemoList 함수에서 동적으로 메모 리스트를 여기에 추가 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <br>
+        <p id="copyright-info">Designed by <span id="author"></span> &copy;
+            <span id="copyright-year"></span>
+        </p>
+    </footer>
+
+    <script>
+        // 페이지 정보 설정
+        const pageInfo = {
+            author: "DBRE & DA \"Tei\"",  // 작성자
+            copyrightYear: "2023-12-01" // 만든 날짜
+        };
+        document.getElementById("author").textContent = pageInfo.author;
+        document.getElementById("copyright-year").textContent = pageInfo.copyrightYear;
+    </script>
+</body>
+</html>
