@@ -22,9 +22,15 @@ allowed_users = [user.strip() for user in allowed_users_env.split(',') if user.s
 
 pid_time_cache = {}
 
+ignore_instance_names = ["millie-prd-replica-instance-1"]
+
 
 async def query_mysql_instance(instance_name, pool, collection, status_dict):
     try:
+        if instance_name in ignore_instance_names:
+            status_dict[instance_name] = "Skipped due to instance name filter"
+            return
+
         current_pids = set()
         sql_query = """SELECT `ID`, `DB`, `USER`, `HOST`, `TIME`, `INFO`
                         FROM `information_schema`.`PROCESSLIST`
@@ -88,7 +94,7 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                                 instance_info = data_to_insert.get('instance', '알 수 없는 Instance')
                                 pid_info = data_to_insert.get('pid')
                                 slack_title = "[SlowQuery Alert]"
-                                slack_message = f"님이 실행한 SQL쿼리(PID: {pid_info})가\n *{instance_info}*, *{db_info}* DB에서 *{data_to_insert['time']}* 초 동안 실행 되었습니다.\n 쿼리 검수 및 실행 시 주의가 필요합니다. \n http://172.30.111.48:8000/sql-plan?pid={pid_info}"
+                                slack_message = f"님이 실행한 SQL쿼리(PID: {pid_info})가\n *{instance_info}*, *{db_info}* DB에서 *{data_to_insert['time']}* 초 동안 실행 되었습니다.\n 쿼리 검수 및 실행 시 주의가 필요합니다. \n http://{host}:8000/sql-plan?pid={pid_info}"
                                 await send_slack_notification(user_email, slack_title, slack_message)
 
                         del pid_time_cache[(instance, pid)]
