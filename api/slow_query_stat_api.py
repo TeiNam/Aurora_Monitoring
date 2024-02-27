@@ -16,6 +16,7 @@ async def get_statistics():
                     "user": "$user"
                 },
                 "total_count": {"$sum": 1},
+                "max_time": {"$max": "$time"},
                 "total_time": {"$sum": "$time"}
             }
         },
@@ -27,17 +28,24 @@ async def get_statistics():
                         "db": "$_id.db",
                         "user": "$_id.user",
                         "count": "$total_count",
-                        "time": "$total_time"
+                        "max_time": "$max_time",
+                        "total_time": "$total_time"
                     }
-                },
-                "total_count_per_instance": {"$sum": "$total_count"}
+                }
             }
         },
         {
+            "$unwind": "$dbs"
+        },
+        {
             "$project": {
+                "_id": 0,
                 "instance": "$_id",
-                "total_count_per_instance": 1,
-                "dbs": 1
+                "db": "$dbs.db",
+                "user": "$dbs.user",
+                "count": "$dbs.count",
+                "max_time": "$dbs.max_time",
+                "total_time": "$dbs.total_time"
             }
         }
     ]

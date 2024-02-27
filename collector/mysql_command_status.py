@@ -24,15 +24,20 @@ async def query_mysql_status(connection, query_string, single_row=False):
 
 
 def process_global_status(data, uptime):
+    desired_commands = [
+        'Com_select', 'Com_delete', 'Com_delete_multi',
+        'Com_insert', 'Com_insert_select', 'Com_replace',
+        'Com_replace_select', 'Com_update', 'Com_update_multi',
+        'Com_flush', 'Com_kill', 'Com_purge', 'Com_admin_commands'
+    ]
     processed_data = {}
     total_sum = 0
-
     for key, value in data.items():
-        if key.startswith('Com_') and value != '0':
+        if key in desired_commands and value != '0':
             total_sum += int(value)
 
     for key, value in data.items():
-        if key.startswith('Com_') and value != '0':
+        if key in desired_commands and value != '0':
             new_key = key[4:]
             value = int(value)
 
