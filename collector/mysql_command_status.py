@@ -25,7 +25,7 @@ async def query_mysql_status(connection, query_string, single_row=False):
 
 def process_global_status(data, uptime):
     desired_commands = [
-        'Queries', 'Com_select', 'Com_delete', 'Com_delete_multi',
+        'Com_select', 'Com_delete', 'Com_delete_multi',
         'Com_insert', 'Com_insert_select', 'Com_replace',
         'Com_replace_select', 'Com_update', 'Com_update_multi',
         'Com_flush', 'Com_kill', 'Com_purge', 'Com_admin_commands',
@@ -60,13 +60,12 @@ def process_global_status(data, uptime):
 
 
 async def save_mysql_command_status_to_mongodb(collection, instance_name, command_status):
-    update_document = {
-        '$set': {
-            'timestamp': datetime.now(pytz.utc),
-            'command_status': command_status
-        }
+    document = {
+        'timestamp': datetime.now(pytz.utc),
+        'instance_name': instance_name,
+        'command_status': command_status
     }
-    await collection.update_one({'instance_name': instance_name}, update_document, upsert=True)
+    await collection.insert_one(document)
 
 
 async def query_instance_and_save_to_db(connection, instance, collection):

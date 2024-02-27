@@ -8,8 +8,10 @@ app = FastAPI()
 async def get_command_status(instance_name):
     db = await MongoDBConnector.get_database()
     collection = db[MONGODB_STATUS_COLLECTION_NAME]
-    document = await collection.find_one({'instance_name': instance_name}, {'_id': 0})
-    return document
+    document = await collection.find({'instance_name': instance_name}, {'_id': 0}).sort('timestamp', -1).limit(1).to_list(length=1)
+    if document:
+        return document[0]
+    return None
 
 
 def transform_data_to_table_format(data):

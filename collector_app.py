@@ -18,11 +18,19 @@ def get_seconds_until_midnight_kst():
     return seconds_until_midnight
 
 
+# 자정에 한번 수집
 async def run_daily_at_midnight(task_func):
     while True:
         seconds_until_midnight = get_seconds_until_midnight_kst()
         await asyncio.sleep(seconds_until_midnight)
         await task_func()
+
+
+# 초단위 반복 수집
+async def run_periodically(task_func, interval_seconds):
+    while True:
+        await task_func()
+        await asyncio.sleep(interval_seconds)
 
 
 async def run_with_restart(task_func):
@@ -35,18 +43,12 @@ async def run_with_restart(task_func):
             await asyncio.sleep(5)  # 5초 후 재시작
 
 
-async def run_periodically(task_func, interval_seconds):
-    while True:
-        await task_func()
-        await asyncio.sleep(interval_seconds)
-
-
 async def main():
     # aurora_metrics와 mysql_slow_queries는 예외 발생 시 재시작
     slow_queries_task = asyncio.create_task(run_with_restart(run_mysql_slow_queries))
 
     # mysql_command_status를 매일 자정에 실행
-    command_status_task = asyncio.create_task(run_daily_at_midnight(run_mysql_command_status))
+    command_status_task = asyncio.create_task(run_periodically(run_mysql_command_status, 3600))
 
     # 예외가 발생해도 다른 태스크에 영향을 주지 않도록 함
     await asyncio.gather(
