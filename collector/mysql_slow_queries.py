@@ -183,7 +183,7 @@ async def run_mysql_slow_queries():
         for pool_name, pool in pools.items():
             if pool is not None:
                 try:
-                    await pool.close()
+                    pool.close()
                 except Exception as ex:
                     print(f"{get_kst_time()} - An error occurred while closing the pool {pool_name}: {ex}")
 
