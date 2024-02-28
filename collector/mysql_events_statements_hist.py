@@ -1,34 +1,41 @@
 import asyncio
 import asyncmy
 import traceback
-from pymongo import UpdateOne
+from pymongo import InsertOne, MongoClient
 
 # Local imports
 from modules.mongodb_connector import MongoDBConnector
 from modules.crypto_utils import decrypt_password
 from modules.time_utils import get_kst_time
 from modules.json_loader import load_json
-from config import MONGODB_DIGEST_COLLECTION_NAME
-
-# Definitions
-pid_time_cache = {}
+from config import MONGODB_HISTORY_COLLECTION_NAME, MONGODB_DIGEST_COLLECTION_NAME
 
 
-async def query_mysql_instance(instance_name, pool, collection, status_dict):
+async def fetch_existing_digests(db):
+    """MongoDB에서 존재하는 digest 목록을 조회합니다."""
+    collection = db[MONGODB_DIGEST_COLLECTION_NAME]
+    cursor = collection.find({}, {'digest': 1})
+    existing_digests = set(doc['digest'] for doc in await cursor.to_list(length=None))
+    return existing_digests
+
+
+async def check_performance_schema(pool):
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SHOW VARIABLES LIKE 'performance_schema'")
+            result = await cur.fetchone()
+            return result is not None and result[1].lower() == 'on'
+
+
+async def query_mysql_instance(instance_name, pool, collection, status_dict, existing_digests):
     try:
         batch_size = 1000  # 적절한 배치 크기 설정
         offset = 0
 
         while True:
-            sql_query = f"""SELECT SCHEMA_NAME, DIGEST, DIGEST_TEXT, COUNT_STAR, SUM_TIMER_WAIT, MIN_TIMER_WAIT, 
-                            AVG_TIMER_WAIT, MAX_TIMER_WAIT, SUM_LOCK_TIME, SUM_ERRORS, SUM_WARNINGS, SUM_ROWS_AFFECTED, 
-                            SUM_ROWS_SENT, SUM_ROWS_EXAMINED, SUM_CREATED_TMP_DISK_TABLES, SUM_CREATED_TMP_TABLES, 
-                            SUM_SELECT_FULL_JOIN, SUM_SELECT_FULL_RANGE_JOIN, SUM_SELECT_RANGE, SUM_SELECT_RANGE_CHECK, 
-                            SUM_SELECT_SCAN, SUM_SORT_MERGE_PASSES, SUM_SORT_RANGE, SUM_SORT_ROWS, SUM_SORT_SCAN, 
-                            SUM_NO_INDEX_USED, SUM_NO_GOOD_INDEX_USED, FIRST_SEEN, LAST_SEEN
-                            FROM performance_schema.events_statements_summary_by_digest
-                            WHERE SCHEMA_NAME NOT IN ('mysql', 'performance_schema', 'information_schema')
-                            AND SCHEMA_NAME IS NOT NULL
+            sql_query = f"""SELECT EVENT_NAME, DIGEST, SQL_TEXT, TIMER_START, TIMER_END, TIMER_WAIT
+                            FROM performance_schema.events_statements_history
+                            WHERE EVENT_NAME in ('statement/sql/select','statement/sql/insert','statement/sql/update','statement/sp/stmt')
                             LIMIT {batch_size} OFFSET {offset}"""
 
             async with pool.acquire() as conn:
@@ -41,19 +48,17 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
 
                     operations = []
                     for row in result:
-                        digest_data = {col: row[idx] for idx, col in enumerate([
-                            'schema_name', 'digest', 'digest_text', 'count_star', 'sum_timer_wait', 'min_timer_wait',
-                            'avg_timer_wait', 'max_timer_wait', 'sum_lock_time', 'sum_errors', 'sum_warnings',
-                            'sum_rows_affected', 'sum_rows_sent', 'sum_rows_examined', 'sum_created_tmp_disk_tables',
-                            'sum_created_tmp_tables', 'sum_select_full_join', 'sum_select_full_range_join',
-                            'sum_select_range', 'sum_select_range_check', 'sum_select_scan', 'sum_sort_merge_passes',
-                            'sum_sort_range', 'sum_sort_rows', 'sum_sort_scan', 'sum_no_index_used',
-                            'sum_no_good_index_used', 'first_seen', 'last_seen'])}
-
-                        operations.append(UpdateOne(
-                            {'digest': row[1], 'instance': instance_name},
-                            {'$set': digest_data},
-                            upsert=True))
+                        if row[1] in existing_digests:  # digest가 존재하는 경우에만 추가
+                            history_data = {
+                                'instance': instance_name,
+                                'event_name': row[0],
+                                'digest': row[1],
+                                'sql_text': row[2],
+                                'timer_start': row[3],
+                                'timer_end': row[4],
+                                'timer_wait': row[5]
+                            }
+                            operations.append(InsertOne(history_data))
 
                     if operations:
                         await collection.bulk_write(operations)
@@ -63,26 +68,20 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
         status_dict[instance_name] = "Success"
     except Exception as e:
         status_dict[instance_name] = f"Failed: {e}"
+        traceback.print_exc()
 
 
-async def check_performance_schema(pool):
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cur:
-            await cur.execute("SHOW VARIABLES LIKE 'performance_schema'")
-            result = await cur.fetchone()
-            return result is not None and result[1].lower() == 'on'
-
-
-async def run_gather_digest():
+async def run_gather_history():
     pools = {}
     instance_status = {}
     max_retries = 3
 
     try:
         await MongoDBConnector.initialize()
-
         db = await MongoDBConnector.get_database()
-        collection = db[MONGODB_DIGEST_COLLECTION_NAME]
+        collection = db[MONGODB_HISTORY_COLLECTION_NAME]
+
+        existing_digests = await fetch_existing_digests(db)
 
         instances = load_json("rds_instances.json")
         tasks = []
@@ -117,7 +116,7 @@ async def run_gather_digest():
                 if performance_schema_enabled:
                     # 코루틴을 태스크로 변환하여 추가
                     task = asyncio.create_task(
-                        query_mysql_instance(instance_name, pools[instance_name], collection, instance_status))
+                        query_mysql_instance(instance_name, pools[instance_name], collection, instance_status, existing_digests))
                     tasks.append(task)
                 else:
                     print(f"{get_kst_time()} - Performance schema is not enabled for {instance_name}. Skipping.")
@@ -141,4 +140,4 @@ async def run_gather_digest():
         print(f"{get_kst_time()} - Script completed and resources have been released.")
 
 if __name__ == '__main__':
-    asyncio.run(run_gather_digest())
+    asyncio.run(run_gather_history())
