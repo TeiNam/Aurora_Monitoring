@@ -46,8 +46,6 @@ async def run_with_restart(task_func):
             await asyncio.sleep(5)  # 5초 후 재시작
 
 
-
-
 async def main():
     # aurora_metrics와 mysql_slow_queries는 예외 발생 시 재시작
     slow_queries_task = asyncio.create_task(run_with_restart(run_mysql_slow_queries))
@@ -61,9 +59,8 @@ async def main():
     # mysql_summary_by_digest 1분 주기로 수집
     hist_status_task = asyncio.create_task(run_periodically(run_gather_history, 60))
 
-    # get_aurora_task 1시간 주기로 수집
-    region_name = 'ap-northeast-2'
-    get_aurora_task = asyncio.create_task(run_periodically(get_aurora_info, 3600))
+    # get_aurora_task 15분 주기로 수집
+    get_aurora_task = asyncio.create_task(run_periodically(get_aurora_info, 900))
 
     # 예외가 발생해도 다른 태스크에 영향을 주지 않도록 함
     await asyncio.gather(
