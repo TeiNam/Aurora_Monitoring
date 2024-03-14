@@ -1,6 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import MONGODB_URI, MONGODB_DB_NAME
 
+
 class MongoDBConnector:
     _client = None
     _db = None

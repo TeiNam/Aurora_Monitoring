@@ -1,62 +1,80 @@
-document.addEventListener("DOMContentLoaded", function() {
-    loadMemoList();
-});
+let currentPage = 1;
 
-async function fetchMemos() {
+async function fetchMemos(page = 1, page_size = 5) {
     try {
-        const response = await fetch('/api/memo/');
-        const memos = await response.json();
-        displayMemos(memos);
+        const response = await fetch(`/api/memo/?page=${page}&page_size=${page_size}`);
+        const data = await response.json();
+        displayMemos(data.data);
+        updatePaginationControls(page, data.total_pages);
     } catch (error) {
         console.error('Error fetching memos:', error);
     }
 }
 
-async function loadMemoList() {
-    try {
-        const response = await fetch('/api/memo/');
-        if (!response.ok) {
-            alert('Memo data를 불러오는 데 실패했습니다.');
-            return;
+function updatePaginationControls(currentPage, totalPages) {
+    const paginationDiv = document.getElementById('pagination');
+    paginationDiv.innerHTML = '';
+
+    if (currentPage > 1) {
+        const prevButton = document.createElement('button');
+        prevButton.textContent = 'Prev';
+        prevButton.onclick = function() { fetchMemos(currentPage - 1); };
+        paginationDiv.appendChild(prevButton);
+    }
+
+    let startPage = Math.max(currentPage - 2, 1);
+    let endPage = Math.min(startPage + 4, totalPages);
+
+    for (let page = startPage; page <= endPage; page++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = page;
+        pageButton.onclick = function() { fetchMemos(page); };
+        if (page === currentPage) {
+            pageButton.style.fontWeight = 'bold';
         }
-        const memos = await response.json();
+        paginationDiv.appendChild(pageButton);
+    }
 
-        if (!memos || !Array.isArray(memos)) {
-            alert('Memo 데이터가 유효하지 않습니다.');
-            return;
-        }
-        const tableBody = document.getElementById('memoList').getElementsByTagName('tbody')[0];
-        tableBody.innerHTML = '';
-
-        memos.forEach(memo => {
-            const row = tableBody.insertRow();
-
-            const contentCell = row.insertCell();
-            contentCell.className = 'memo-content-cell';
-            contentCell.textContent = memo.content;
-
-            contentCell.addEventListener('dblclick', function() {
-                selectText(contentCell);
-            });
-
-            const deleteCell = row.insertCell();
-            deleteCell.className = 'delete-cell';
-
-            const deleteButton = document.createElement('button');
-            deleteButton.textContent = 'Delete';
-            deleteButton.onclick = function() { deleteMemo(memo.id); };
-            deleteButton.className = 'delete-button';
-            deleteCell.appendChild(deleteButton);
-        });
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error loading memo list: ' + error.message);
+    if (currentPage < totalPages) {
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Next';
+        nextButton.onclick = function() { fetchMemos(currentPage + 1); };
+        paginationDiv.appendChild(nextButton);
     }
 }
 
+function displayMemos(memos) {
+    const tableBody = document.getElementById('memoList').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = '';
+
+    memos.forEach(memo => {
+        const row = tableBody.insertRow();
+
+        const contentCell = row.insertCell();
+        contentCell.className = 'memo-content-cell';
+        contentCell.textContent = memo.content;
+
+        // 메모 내용 셀을 더블 클릭했을 때 전체 텍스트 선택
+        contentCell.addEventListener('dblclick', function() {
+            window.getSelection().selectAllChildren(contentCell);
+        });
+
+        const deleteCell = row.insertCell();
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.className = 'delete-button';
+        deleteButton.onclick = function() { deleteMemo(memo.id); };
+        deleteCell.appendChild(deleteButton);
+    });
+}
+
+
 async function addMemo() {
     const content = document.getElementById('memoContent').value;
-    const memo = { content };
+    if (!content) {
+        alert("Please enter some content for the memo.");
+        return;
+    }
 
     try {
         await fetch('/api/memo/', {
@@ -64,9 +82,9 @@ async function addMemo() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(memo),
+            body: JSON.stringify({ content: content }),
         });
-        loadMemoList();
+        fetchMemos(currentPage);  // Add 후 현재 페이지를 새로고침
     } catch (error) {
         console.error('Error adding memo:', error);
     }
@@ -74,29 +92,13 @@ async function addMemo() {
 
 async function deleteMemo(memoId) {
     try {
-        const response = await fetch(`/api/memo/${memoId}`, {
+        await fetch(`/api/memo/${memoId}`, {
             method: 'DELETE',
         });
-        if (!response.ok) {
-            throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        loadMemoList(); // 메모 삭제 후 메모 리스트를 다시 불러옵니다.
+        fetchMemos(currentPage);  // Delete 후 현재 페이지를 새로고침
     } catch (error) {
         console.error('Error deleting memo:', error);
     }
 }
 
-function selectText(cell) {
-    if (document.body.createTextRange) { // IE용 코드
-        const range = document.body.createTextRange();
-        range.moveToElementText(cell);
-        range.select();
-    } else if (window.getSelection) { // 비IE용 코드
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(cell);
-        selection.removeAllRanges();
-        selection.addRange(range);
-    }
-}
-
+document.addEventListener("DOMContentLoaded", () => fetchMemos(currentPage));

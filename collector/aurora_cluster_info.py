@@ -78,21 +78,18 @@ async def fetch_rds_instance_data(client, collection, instance_name, region):
 async def fetch_and_save_rds_instance_data(client, collection, instance_name, region):
     instance_data = await fetch_rds_instance_data(client, collection, instance_name, region)
     if instance_data:
-        cluster_identifier = instance_data.get('DBClusterIdentifier', instance_name)
-        current_time = datetime.utcnow()
 
         await collection.update_one(
-            {"DBClusterIdentifier": cluster_identifier},
+            {"DBInstanceIdentifier": instance_name},
             {
                 "$set": instance_data,
-                "$setOnInsert": {"created_at": current_time},
-                "$currentDate": {"last_updated_at": True}
+                "$currentDate": {"last_updated_at": True}  # 문서의 마지막 업데이트 시간을 현재로 설정
             },
             upsert=True
         )
 
 
-async def get_aurora_info(region_name):
+async def get_aurora_info():
     try:
         rds_instances_info = load_json('rds_instances.json')
     except FileNotFoundError as e:
@@ -104,7 +101,7 @@ async def get_aurora_info(region_name):
 
     async with aioboto3.Session().client(
         'rds',
-        region_name=region_name,
+        region_name='ap-northeast-2',
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_KEY
     ) as client:
@@ -118,4 +115,4 @@ async def get_aurora_info(region_name):
 
 if __name__ == '__main__':
     region = 'ap-northeast-2'
-    asyncio.run(get_aurora_info(region), debug=True)
+    asyncio.run(get_aurora_info(), debug=True)

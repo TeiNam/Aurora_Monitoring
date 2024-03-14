@@ -5,10 +5,7 @@ from datetime import datetime
 from modules.mongodb_connector import MongoDBConnector
 from bson import ObjectId
 
-# 컬렉션 이름 선언
 COLLECTION_NAME = "memo"
-
-# APIRouter 인스턴스 생성
 router = APIRouter()
 
 
@@ -23,6 +20,14 @@ class MemoInDB(Memo):
     _id: ObjectId
 
 
+class PaginatedResponse(BaseModel):
+    data: List[Memo]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 def memo_entity(memo_db) -> Memo:
     return Memo(**memo_db, id=str(memo_db["_id"]))
 
@@ -35,12 +40,19 @@ async def create_memo(memo: Memo):
     return memo_entity({**memo_db, "_id": result.inserted_id})
 
 
-@router.get("/", response_model=List[Memo])
-async def read_memos(page: int = 1):
+@router.get("/", response_model=PaginatedResponse)
+async def read_memos(page: int = 1, page_size: int = 5):
     db = await MongoDBConnector.get_database()
-    skip = (page - 1) * 5
-    memos = await db[COLLECTION_NAME].find().sort("_id", -1).skip(skip).limit(5).to_list(5)
-    return [memo_entity(memo) for memo in memos]
+    total = await db[COLLECTION_NAME].count_documents({})
+    skip = (page - 1) * page_size
+    memos = await db[COLLECTION_NAME].find().sort("_id", -1).skip(skip).limit(page_size).to_list(None)
+    return PaginatedResponse(
+        data=[memo_entity(memo) for memo in memos],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size
+    )
 
 
 @router.get("/{memo_id}", response_model=Memo)
@@ -60,6 +72,5 @@ async def delete_memo(memo_id: str):
         raise HTTPException(status_code=404, detail="Memo not found")
     return memo_entity(result)
 
-# FastAPI 애플리케이션 인스턴스 생성 및 라우터 마운트
 app = FastAPI()
 app.include_router(router)
