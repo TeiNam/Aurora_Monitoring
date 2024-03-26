@@ -32,7 +32,10 @@ async def run_daily_at_midnight(task_func):
 # 초단위 반복 수집
 async def run_periodically(task_func, interval_seconds):
     while True:
-        await task_func()
+        try:
+            await task_func()
+        except Exception as e:
+            print(f"{get_kst_time()} - Error in {task_func.__name__}: {e}")
         await asyncio.sleep(interval_seconds)
 
 

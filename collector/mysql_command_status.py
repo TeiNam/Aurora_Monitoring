@@ -106,8 +106,6 @@ async def run_mysql_command_status():
     tasks = [handle_instance(instance, collection) for instance in instances]
     await asyncio.gather(*tasks)
 
-    MongoDBConnector.client.close()
-
 
 if __name__ == '__main__':
     try:
