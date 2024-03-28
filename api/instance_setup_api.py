@@ -1,80 +1,70 @@
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from modules.crypto_utils import encrypt_password
-from modules.json_loader import load_json, save_json
+from modules.mongodb_connector import MongoDBConnector
+from config import MONGODB_RDS_INSTANCE_LIST_COLLATION_NAME
 
 app = FastAPI()
 
-FILE_PATH = "rds_instances.json"
-
 
 class RDSInstance(BaseModel):
-    cluster_name: Optional[str] = "Non-Cluster"
+    environment: str = Field(default="DEV")
+    db_type: str = Field(default="MySQL")
+    cluster_name: Optional[str] = Field(default=None)
     instance_name: str
     host: str
-    port: Optional[int] = 3306
-    region: Optional[str] = "ap-northeast-2"
+    port: Optional[int] = Field(default=3306)
+    region: str = Field(default="ap-northeast-2")
     user: str
     password: str
-    db: Optional[str] = "information_schema"
+    db: Optional[str] = Field(default="information_schema")
 
 
 @app.get("/list_instances/")
 async def list_instances():
-    data = load_json(FILE_PATH)
-    for entry in data:
-        if "password" in entry:
-            del entry["password"]
-    return {"instances": data}
+    collection = MongoDBConnector.db[MONGODB_RDS_INSTANCE_LIST_COLLATION_NAME]
+    instances = await collection.find({}, {'_id': 0, 'password': 0}).to_list(length=None)
+    return {"instances": instances}
 
 
 @app.post("/add_instance/", status_code=201)
-async def add_instance(rds_instance: RDSInstance, action: str = Query(None, alias='action')):
+async def add_instance(rds_instance: RDSInstance):
     encrypted_password_base64 = encrypt_password(rds_instance.password)
-
-    existing_data = load_json(FILE_PATH)
+    collection = MongoDBConnector.db[MONGODB_RDS_INSTANCE_LIST_COLLATION_NAME]
 
     instance_data = {
+        "environment": rds_instance.environment,
+        "db_type": rds_instance.db_type,
         "cluster_name": rds_instance.cluster_name,
         "instance_name": rds_instance.instance_name,
         "host": rds_instance.host,
-        "port": rds_instance.port,
-        "region": rds_instance.region,
+        "port": rds_instance.port or 3306,  # 빈 값인 경우 기본값 적용
+        "region": rds_instance.region or "ap-northeast-2",  # 빈 값인 경우 기본값 적용
         "user": rds_instance.user,
         "password": encrypted_password_base64,
         "db": rds_instance.db
     }
 
-    instance_exists = any(
-        entry for entry in existing_data
-        if entry["instance_name"] == rds_instance.instance_name or entry["host"] == rds_instance.host
+    # 인스턴스명으로 기존 데이터 확인 후 업데이트, 없으면 새로 삽입
+    result = await collection.update_one(
+        {"instance_name": rds_instance.instance_name},
+        {"$set": instance_data},
+        upsert=True  # 이 옵션은 해당하는 document가 없으면 새로 삽입합니다.
     )
 
-    if instance_exists:
-        if action == "update":
-            for entry in existing_data:
-                if entry["instance_name"] == rds_instance.instance_name or entry["host"] == rds_instance.host:
-                    entry.update(instance_data)
-        elif action == "cancel":
-            return {"message": "Instance addition cancelled"}
+    if result.matched_count:
+        return {"message": "Instance updated successfully"}
     else:
-        existing_data.append(instance_data)
-
-    save_json(FILE_PATH, existing_data)
-
-    return {"message": "Operation completed successfully"}
+        return {"message": "New instance inserted successfully"}
 
 
 @app.delete("/delete_instance/")
 async def delete_instance(instance_name: str):
-    data = load_json(FILE_PATH)
+    collection = MongoDBConnector.db[MONGODB_RDS_INSTANCE_LIST_COLLATION_NAME]
+    result = await collection.delete_one({"instance_name": instance_name})
 
-    updated_data = [entry for entry in data if entry["instance_name"] != instance_name]
-
-    if len(updated_data) == len(data):
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Instance not found")
-
-    save_json(FILE_PATH, updated_data)
 
     return {"message": "Instance deleted successfully"}

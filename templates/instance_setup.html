@@ -13,9 +13,14 @@
             <table id="instanceTable">
                 <thead>
                     <tr>
+                        <th>Environment</th>  <!-- 추가된 헤더 -->
+                        <th>DB Type</th>
                         <th>Region</th>
                         <th>Cluster Name</th>
                         <th>Instance Name</th>
+                        <th>Host</th>         <!-- 추가된 헤더 -->
+                        <th>Port</th>         <!-- 추가된 헤더 -->
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -26,6 +31,23 @@
         <br>
         <h2>Add Instance</h2>
         <form class="form" id="rdsForm">
+            <div class="field">
+                <label for="environment">Environment:</label>
+                <select class="input-field" id="environment" name="environment" required>
+                    <option value="DEV">DEV</option>
+                    <option value="TEST">TEST</option>
+                    <option value="PROD">PROD</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="db_type">DB Type:</label>
+                <select class="input-field" id="db_type" name="db_type" required>
+                    <option value="MySQL">MySQL</option>
+                    <option value="PostgreSQL">PostgreSQL</option>
+                    <option value="Oracle">Oracle</option>
+                    <option value="MSSQL">MSSQL</option>
+                </select>
+            </div>
             <div class="field">
                 <label for="cluster_name">Cluster Name:</label>
                 <input class="input-field" type="text" id="cluster_name" name="cluster_name">

@@ -9,3 +9,11 @@ button {
     width: 7.0em;
     font-size: 1.0em;
 }
+table {
+    width: 100%; /* 테이블 너비를 전체로 설정 */
+}
+
+th, td {
+    min-width: 100px; /* 최소 셀 너비 설정 */
+    white-space: nowrap; /* 줄바꿈 방지 */
+}

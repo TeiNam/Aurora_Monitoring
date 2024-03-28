@@ -92,7 +92,7 @@ async def fetch_and_save_rds_instance_data(client, collection, instance_name, re
 async def get_aurora_info():
     try:
         rds_instances_info = load_json('rds_instances.json')
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logging.error("File not found: rds_instances.json")
         return
 

@@ -21,9 +21,13 @@ async function loadInstanceList() {
             }
 
             const row = tableBody.insertRow();
+            row.insertCell().textContent = instance.environment;
+            row.insertCell().textContent = instance.db_type;
             row.insertCell().textContent = instance.region;
             row.insertCell().textContent = instance.cluster_name;
             row.insertCell().textContent = instance.instance_name;
+            row.insertCell().textContent = instance.host;
+            row.insertCell().textContent = instance.port;
 
             const deleteCell = row.insertCell();
             const deleteButton = document.createElement('button');
