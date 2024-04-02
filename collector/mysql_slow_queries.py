@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from modules.mongodb_connector import MongoDBConnector
 from modules.crypto_utils import decrypt_password
 from modules.time_utils import get_kst_time
-from modules.json_loader import load_json
+from modules.load_instance import load_instances_from_mongodb
 from modules.slack_noti import send_slack_notification
 from config import MONGODB_SLOWLOG_COLLECTION_NAME, EXEC_TIME
 
@@ -120,18 +120,18 @@ async def run_mysql_slow_queries():
         db = await MongoDBConnector.get_database()
         collection = db[MONGODB_SLOWLOG_COLLECTION_NAME]
 
-        instances = load_json("rds_instances.json")
+        instances = await load_instances_from_mongodb()  # 수정된 부분
 
         while True:
             tasks = []
             for instance_data in instances:
                 instance_name = instance_data["instance_name"]
-                if instance_name in pools and pools[instance_name] is None:
+                if instance_name in ignore_instance_names:
                     continue
                 host = instance_data["host"]
                 port = instance_data["port"]
                 user = instance_data["user"]
-                db = instance_data["db"]
+                db_name = instance_data.get("db", "")  # 수정된 부분: 디폴트 DB 이름
                 encrypted_password_base64 = instance_data["password"]
                 decrypted_password = decrypt_password(encrypted_password_base64)
 
@@ -139,7 +139,7 @@ async def run_mysql_slow_queries():
                     for attempt in range(max_retries):
                         try:
                             pool = await asyncmy.create_pool(
-                                host=host, port=port, user=user, password=decrypted_password, db=db
+                                host=host, port=port, user=user, password=decrypted_password, db=db_name
                             )
                             pools[instance_name] = pool
                             print(f"{get_kst_time()} - Connection pool created successfully for {instance_name}")
@@ -157,9 +157,6 @@ async def run_mysql_slow_queries():
 
             if tasks:
                 await asyncio.gather(*tasks)
-            for instance, status in instance_status.items():
-                if "Failed" in status:
-                    print(f"{get_kst_time()} - Instance {instance} Status: {status}")
 
             await asyncio.sleep(1)
 

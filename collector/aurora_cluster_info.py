@@ -1,12 +1,17 @@
 import aioboto3
 import asyncio
 import logging
-from datetime import datetime
 from modules.mongodb_connector import MongoDBConnector
+from modules.load_instance import load_instances_from_mongodb
 from config import AWS_ACCESS_KEY, AWS_SECRET_KEY, MONGODB_AURORA_INFO_COLLECTION_NAME
-from modules.json_loader import load_json
 
 logging.basicConfig(level=logging.ERROR)
+
+
+async def fetch_instance_specs_from_mongodb(db, instance_class):
+    collection = db['rdsSpecs']
+    spec_data = await collection.find_one({'instance_size': instance_class})
+    return spec_data
 
 
 async def get_rds_instance_info(client, instance_name):
@@ -27,7 +32,7 @@ async def get_rds_cluster_info(client, cluster_identifier):
         return None
 
 
-async def fetch_rds_instance_data(client, collection, instance_name, region):
+async def fetch_rds_instance_data(client, mongodb, instance_name, region):
     instance_data = await get_rds_instance_info(client, instance_name)
     if not instance_data:
         return
@@ -52,9 +57,12 @@ async def fetch_rds_instance_data(client, collection, instance_name, region):
                 environment_value = tag['Value']
                 break
 
-    rds_specs = load_json("rds_specs.json")
     instance_class = instance_data.get('DBInstanceClass')
-    spec_data = rds_specs.get(instance_class, {})
+    spec_data = await fetch_instance_specs_from_mongodb(mongodb, instance_class)
+
+    if not spec_data:
+        print(f"No specs found for {instance_class}")
+        return
 
     return {
         'region': region,
@@ -75,10 +83,11 @@ async def fetch_rds_instance_data(client, collection, instance_name, region):
     }
 
 
-async def fetch_and_save_rds_instance_data(client, collection, instance_name, region):
+async def fetch_and_save_rds_instance_data(client, collection, instance_info):
+    region = instance_info['region']
+    instance_name = instance_info['instance_name']
     instance_data = await fetch_rds_instance_data(client, collection, instance_name, region)
     if instance_data:
-
         await collection.update_one(
             {"DBInstanceIdentifier": instance_name},
             {
@@ -90,12 +99,6 @@ async def fetch_and_save_rds_instance_data(client, collection, instance_name, re
 
 
 async def get_aurora_info():
-    try:
-        rds_instances_info = load_json('rds_instances.json')
-    except FileNotFoundError:
-        logging.error("File not found: rds_instances.json")
-        return
-
     db = await MongoDBConnector.get_database()
     collection = db[MONGODB_AURORA_INFO_COLLECTION_NAME]
 
@@ -105,8 +108,8 @@ async def get_aurora_info():
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_KEY
     ) as client:
-        tasks = [fetch_and_save_rds_instance_data(client, collection, info['instance_name'], info['region'])
-                 for info in rds_instances_info]
+        instances_info = await load_instances_from_mongodb()
+        tasks = [fetch_and_save_rds_instance_data(client, collection, instance) for instance in instances_info]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         for result in results:
             if isinstance(result, Exception):
@@ -114,5 +117,4 @@ async def get_aurora_info():
 
 
 if __name__ == '__main__':
-    region = 'ap-northeast-2'
     asyncio.run(get_aurora_info(), debug=True)

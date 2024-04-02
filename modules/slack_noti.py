@@ -8,12 +8,6 @@ SLACK_API_TOKEN = os.getenv("SLACK_API_TOKEN")
 
 
 def get_slack_user_id(email):
-    """
-    Retrieves a Slack user ID based on their email address.
-
-    :param email: The email address of the Slack user
-    :return: The Slack user ID or None if not found
-    """
     headers = {
         'Authorization': f'Bearer {SLACK_API_TOKEN}',
         'Content-Type': 'application/json'

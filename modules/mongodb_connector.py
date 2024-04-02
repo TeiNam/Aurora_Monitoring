@@ -43,5 +43,4 @@ class MongoDBConnector:
         await cls.initialize()
 
 
-# 로깅 설정 (예: 파일 로깅, 콘솔 로깅 등)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

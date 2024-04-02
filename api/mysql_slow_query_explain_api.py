@@ -2,17 +2,15 @@ import re
 import sqlparse
 import json
 import pymysql.cursors
-from fastapi import FastAPI, HTTPException, Query, Response, Depends
+from fastapi import FastAPI, HTTPException, Query, Response
 from datetime import datetime, timezone
 
 from modules.mongodb_connector import MongoDBConnector
-from modules.json_loader import load_json
 from modules.crypto_utils import decrypt_password
+from modules.load_instance import load_instances_from_mongodb
 from config import MONGODB_SLOWLOG_COLLECTION_NAME, MONGODB_PLAN_COLLECTION_NAME
 
 app = FastAPI()
-
-rds_instances = load_json("rds_instances.json")
 
 
 async def get_collection():
@@ -33,22 +31,17 @@ class SQLQueryExecutor:
     @staticmethod
     def validate_sql_query(sql_text):
         query_without_comments = SQLQueryExecutor.remove_sql_comments(sql_text).strip()
-
         if not query_without_comments.lower().startswith("select"):
             raise ValueError("SELECT 쿼리만 가능합니다.")
-
         if "into" in query_without_comments.lower().split("from")[0]:
             raise ValueError("SELECT ... INTO ... FROM 형태의 프로시저 쿼리는 실행할 수 없습니다.")
-
         return query_without_comments
 
     @staticmethod
-    def execute(rds_info, sql_text, db_name):
+    async def execute(rds_info, sql_text, db_name):
         decrypted_password = decrypt_password(rds_info["password"])
-
         try:
             validated_sql = SQLQueryExecutor.validate_sql_query(sql_text)
-
             connection = pymysql.connect(
                 host=rds_info["host"],
                 port=rds_info["port"],
@@ -84,12 +77,6 @@ class MarkdownGenerator:
         return markdown_content
 
 
-class RDSInstanceManager:
-    @staticmethod
-    def get_info(instance_name):
-        return next((item for item in rds_instances if item["instance_name"] == instance_name), None)
-
-
 @app.post("/explain")
 async def execute_sql(pid: int = Query(..., description="The PID to lookup")):
     collection = await get_collection()
@@ -101,13 +88,16 @@ async def execute_sql(pid: int = Query(..., description="The PID to lookup")):
     if document is None:
         raise HTTPException(status_code=404, detail="해당 PID의 문서를 찾을 수 없습니다.")
 
-    rds_info = RDSInstanceManager.get_info(document["instance"])
+    rds_instances = await load_instances_from_mongodb()  # 수정됨
+    rds_info = next((item for item in rds_instances if item["instance_name"] == document["instance"]), None)
     if not rds_info:
         raise HTTPException(status_code=400, detail="instance_name에 해당하는 RDS 인스턴스 정보를 찾을 수 없습니다.")
 
-    document_db = document["db"]
-    execution_plan_raw = SQLQueryExecutor.execute(rds_info, document["sql_text"], document_db)
-    execution_plan = json.loads(execution_plan_raw[0]['EXPLAIN'])
+    execution_plan_raw = await SQLQueryExecutor.execute(rds_info, document["sql_text"], document["db"])
+    if isinstance(execution_plan_raw[0]['EXPLAIN'], dict):
+        execution_plan = execution_plan_raw[0]['EXPLAIN']
+    else:
+        execution_plan = json.loads(execution_plan_raw[0]['EXPLAIN'])
 
     query_plan_document = {
         "pid": pid,

@@ -39,18 +39,17 @@ async def add_instance(rds_instance: RDSInstance):
         "cluster_name": rds_instance.cluster_name,
         "instance_name": rds_instance.instance_name,
         "host": rds_instance.host,
-        "port": rds_instance.port or 3306,  # 빈 값인 경우 기본값 적용
-        "region": rds_instance.region or "ap-northeast-2",  # 빈 값인 경우 기본값 적용
+        "port": rds_instance.port or 3306,
+        "region": rds_instance.region or "ap-northeast-2",
         "user": rds_instance.user,
         "password": encrypted_password_base64,
         "db": rds_instance.db
     }
 
-    # 인스턴스명으로 기존 데이터 확인 후 업데이트, 없으면 새로 삽입
     result = await collection.update_one(
         {"instance_name": rds_instance.instance_name},
         {"$set": instance_data},
-        upsert=True  # 이 옵션은 해당하는 document가 없으면 새로 삽입합니다.
+        upsert=True
     )
 
     if result.matched_count:
