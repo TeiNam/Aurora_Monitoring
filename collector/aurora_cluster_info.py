@@ -8,9 +8,13 @@ from config import AWS_ACCESS_KEY, AWS_SECRET_KEY, MONGODB_AURORA_INFO_COLLECTIO
 logging.basicConfig(level=logging.ERROR)
 
 
-async def fetch_instance_specs_from_mongodb(db, instance_class):
+async def fetch_instance_specs_from_mongodb(instance_class):
+    db = await MongoDBConnector.get_database()
     collection = db['rdsSpecs']
-    spec_data = await collection.find_one({'instance_size': instance_class})
+    spec_data = await collection.find_one({'instance_class': instance_class}, {"_id": 0})
+    if not spec_data:
+        print(f"No specs found for {instance_class}")
+        return None
     return spec_data
 
 
@@ -32,7 +36,7 @@ async def get_rds_cluster_info(client, cluster_identifier):
         return None
 
 
-async def fetch_rds_instance_data(client, mongodb, instance_name, region):
+async def fetch_rds_instance_data(client, db, instance_name, region):
     instance_data = await get_rds_instance_info(client, instance_name)
     if not instance_data:
         return
@@ -57,12 +61,8 @@ async def fetch_rds_instance_data(client, mongodb, instance_name, region):
                 environment_value = tag['Value']
                 break
 
-    instance_class = instance_data.get('DBInstanceClass')
-    spec_data = await fetch_instance_specs_from_mongodb(mongodb, instance_class)
-
-    if not spec_data:
-        print(f"No specs found for {instance_class}")
-        return
+    instance_class = str(instance_data.get('DBInstanceClass'))
+    spec_data = await fetch_instance_specs_from_mongodb(instance_class)
 
     return {
         'region': region,
@@ -92,7 +92,7 @@ async def fetch_and_save_rds_instance_data(client, collection, instance_info):
             {"DBInstanceIdentifier": instance_name},
             {
                 "$set": instance_data,
-                "$currentDate": {"last_updated_at": True}  # 문서의 마지막 업데이트 시간을 현재로 설정
+                "$currentDate": {"last_updated_at": True}
             },
             upsert=True
         )
