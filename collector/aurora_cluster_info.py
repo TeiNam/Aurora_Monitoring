@@ -10,12 +10,21 @@ logging.basicConfig(level=logging.ERROR)
 
 async def fetch_instance_specs_from_mongodb(instance_class):
     db = await MongoDBConnector.get_database()
-    collection = db['rdsSpecs']
-    spec_data = await collection.find_one({'instance_class': instance_class}, {"_id": 0})
+    collection = db['rds_specs']
+
+    pipeline = [
+        {'$match': {'instance_class': instance_class}},
+        {'$project': {'_id': 0, 'vCPU': '$spec.vCPU', 'RAM': '$spec.RAM'}}
+    ]
+
+    cursor = collection.aggregate(pipeline)
+    spec_data = await cursor.to_list(length=1)
+
     if not spec_data:
         print(f"No specs found for {instance_class}")
         return None
-    return spec_data
+
+    return spec_data[0]
 
 
 async def get_rds_instance_info(client, instance_name):
@@ -61,6 +70,9 @@ async def fetch_rds_instance_data(client, db, instance_name, region):
                 environment_value = tag['Value']
                 break
 
+    if not cluster_identifier or cluster_identifier == "Non-Cluster":
+        return None
+
     instance_class = str(instance_data.get('DBInstanceClass'))
     spec_data = await fetch_instance_specs_from_mongodb(instance_class)
 
@@ -83,32 +95,36 @@ async def fetch_rds_instance_data(client, db, instance_name, region):
     }
 
 
-async def fetch_and_save_rds_instance_data(client, collection, instance_info):
+async def fetch_and_save_rds_instance_data(instance_info):
     region = instance_info['region']
     instance_name = instance_info['instance_name']
-    instance_data = await fetch_rds_instance_data(client, collection, instance_name, region)
-    if instance_data:
-        await collection.update_one(
-            {"DBInstanceIdentifier": instance_name},
-            {
-                "$set": instance_data,
-                "$currentDate": {"last_updated_at": True}
-            },
-            upsert=True
-        )
+
+    async with aioboto3.Session().client('rds', region_name=region) as client:
+        db = await MongoDBConnector.get_database()
+        collection = db[MONGODB_AURORA_INFO_COLLECTION_NAME]
+        instance_data = await fetch_rds_instance_data(client, collection, instance_name, region)
+        if instance_data:
+            await collection.update_one(
+                {"DBInstanceIdentifier": instance_name},
+                {
+                    "$set": instance_data,
+                    "$currentDate": {"last_updated_at": True}
+                },
+                upsert=True
+            )
+        else:
+            print(f"Instance {instance_name} is not the Aurora cluster.")
 
 
 async def get_aurora_info():
-    db = await MongoDBConnector.get_database()
-    collection = db[MONGODB_AURORA_INFO_COLLECTION_NAME]
+    instances_info = await load_instances_from_mongodb()
+    tasks = [fetch_and_save_rds_instance_data(instance) for instance in instances_info]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    async with aioboto3.Session().client(
-        'rds',
-        region_name='ap-northeast-2'
-    ) as client:
-        instances_info = await load_instances_from_mongodb()
-        tasks = [fetch_and_save_rds_instance_data(client, collection, instance) for instance in instances_info]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+    all_none = all(result is None for result in results)
+    if all_none:
+        print("There are no instances using Aurora clusters.")
+    else:
         for result in results:
             if isinstance(result, Exception):
                 logging.error(f"Task resulted in error: {result}")
