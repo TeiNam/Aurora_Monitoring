@@ -12,17 +12,14 @@ from modules.mongodb_connector import MongoDBConnector
 from modules.crypto_utils import decrypt_password
 from modules.time_utils import get_kst_time
 from modules.load_instance import load_instances_from_mongodb
-from modules.slack_noti import send_slack_notification
+# from modules.slack_noti import send_slack_notification
 from config import MONGODB_SLOWLOG_COLLECTION_NAME, EXEC_TIME
 
 load_dotenv()
 
-allowed_users_env = os.getenv("ALLOWED_USERS", "")
-allowed_users = [user.strip() for user in allowed_users_env.split(',') if user.strip()]
-
 pid_time_cache = {}
 
-ignore_instance_names = ["millie-prd-replica-instance-1"]
+ignore_instance_names = []
 
 
 async def query_mysql_instance(instance_name, pool, collection, status_dict):
@@ -51,13 +48,11 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                     if time >= EXEC_TIME:
                         cache_data = pid_time_cache.setdefault((instance_name, pid), {'max_time': 0})
                         cache_data['max_time'] = max(cache_data['max_time'], time)
-                        # Debug
-                        #print(f"{get_kst_time()} - Data cached for instance: {instance_name}, pid: {pid}, max_time: {cache_data['max_time']}")
 
                         if 'start' not in cache_data:
                             utc_now = datetime.now(pytz.utc)
                             utc_start_timestamp = int((utc_now - timedelta(seconds=EXEC_TIME)).timestamp())
-                            utc_start_datetime: datetime = datetime.fromtimestamp(utc_start_timestamp, pytz.utc)
+                            utc_start_datetime = datetime.fromtimestamp(utc_start_timestamp, pytz.utc)
                             cache_data['start'] = utc_start_datetime
 
                         info_cleaned = re.sub(' +', ' ', info).encode('utf-8', 'ignore').decode('utf-8')
@@ -82,20 +77,17 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                         utc_now = datetime.now(pytz.utc)
                         data_to_insert['end'] = utc_now
 
-                        # DEBUG
-                        # print(f"{get_kst_time()} - {data_to_insert}")
                         if not await collection.find_one({'_id': data_to_insert.get('_id')}):
                             await collection.insert_one(data_to_insert)
 
                             # 슬랙 노티 모듈을 통한 알림 발송
-                            user_email = f"{data_to_insert['user']}@example.com"
-                            if data_to_insert['user'].lower() in allowed_users:
-                                db_info = data_to_insert.get('db', '알 수 없는 DB')
-                                instance_info = data_to_insert.get('instance', '알 수 없는 Instance')
-                                pid_info = data_to_insert.get('pid')
-                                slack_title = "[SlowQuery Alert]"
-                                slack_message = f"님이 실행한 SQL쿼리(PID: {pid_info})가\n *{instance_info}*, *{db_info}* DB에서 *{data_to_insert['time']}* 초 동안 실행 되었습니다.\n 쿼리 검수 및 실행 시 주의가 필요합니다. \n http://{host}:8000/sql-plan?pid={pid_info}"
-                                await send_slack_notification(user_email, slack_title, slack_message)
+                            # user_email = f"{data_to_insert['user']}@example.com"
+                            # db_info = data_to_insert.get('db', '알 수 없는 DB')
+                            # instance_info = data_to_insert.get('instance', '알 수 없는 Instance')
+                            # pid_info = data_to_insert.get('pid')
+                            # slack_title = "[SlowQuery Alert]"
+                            # execution_time = data_to_insert['time']
+                            # await send_slack_notification(user_email, slack_title, instance_info, db_info, pid_info, execution_time)
 
                         del pid_time_cache[(instance, pid)]
 
@@ -120,7 +112,7 @@ async def run_mysql_slow_queries():
         db = await MongoDBConnector.get_database()
         collection = db[MONGODB_SLOWLOG_COLLECTION_NAME]
 
-        instances = await load_instances_from_mongodb()  # 수정된 부분
+        instances = await load_instances_from_mongodb()
 
         while True:
             tasks = []
@@ -131,7 +123,7 @@ async def run_mysql_slow_queries():
                 host = instance_data["host"]
                 port = instance_data["port"]
                 user = instance_data["user"]
-                db_name = instance_data.get("db", "")  # 수정된 부분: 디폴트 DB 이름
+                db_name = instance_data.get("db", "")
                 encrypted_password_base64 = instance_data["password"]
                 decrypted_password = decrypt_password(encrypted_password_base64)
 
