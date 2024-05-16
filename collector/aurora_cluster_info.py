@@ -3,7 +3,7 @@ import asyncio
 import logging
 from modules.mongodb_connector import MongoDBConnector
 from modules.load_instance import load_instances_from_mongodb
-from config import AWS_ACCESS_KEY, AWS_SECRET_KEY, MONGODB_AURORA_INFO_COLLECTION_NAME
+from config import MONGODB_AURORA_INFO_COLLECTION_NAME
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -104,9 +104,7 @@ async def get_aurora_info():
 
     async with aioboto3.Session().client(
         'rds',
-        region_name='ap-northeast-2',
-        aws_access_key_id=AWS_ACCESS_KEY,
-        aws_secret_access_key=AWS_SECRET_KEY
+        region_name='ap-northeast-2'
     ) as client:
         instances_info = await load_instances_from_mongodb()
         tasks = [fetch_and_save_rds_instance_data(client, collection, instance) for instance in instances_info]
