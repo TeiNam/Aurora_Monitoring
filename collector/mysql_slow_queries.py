@@ -33,7 +33,7 @@ async def query_mysql_instance(instance_name, pool, collection, status_dict):
                         FROM `information_schema`.`PROCESSLIST`
                         WHERE info IS NOT NULL
                         AND DB not in ('information_schema', 'mysql', 'performance_schema')
-                        AND USER not in ('monitor', 'rdsadmin')
+                        AND USER not in ('monitor', 'rdsadmin', 'system user')
                         ORDER BY `TIME` DESC"""
 
         async with pool.acquire() as conn:

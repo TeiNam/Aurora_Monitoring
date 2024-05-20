@@ -70,7 +70,7 @@ async def fetch_rds_instance_data(client, db, instance_name, region):
                 environment_value = tag['Value']
                 break
 
-    if not cluster_identifier or cluster_identifier == "Non-Cluster":
+    if not cluster_identifier == "Non-Cluster":
         return None
 
     instance_class = str(instance_data.get('DBInstanceClass'))
