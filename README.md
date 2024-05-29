@@ -10,7 +10,7 @@ Aurora for MySQL Metric & Slow Query Monitoring
 - FastAPI를 이용한 MongoDB에 저장된 메트릭 및 쿼리 데이터 호출 api
 - 모니터링 대상 instance 목록 관리 api
 ### api
-  - /api/instance_setup : 모니터링 대상 인스턴스 목록 관리 api, rds_instances.json 
+  - /api/instance_setup : 모니터링 대상 인스턴스 목록 관리 api 
   - /api/aws_rds : aws rds instance status 호출 api
   - /api/mysql_status : MySQL 누적 Command status 호출 api
   - /api/aurora_status : Cloudwatch에서 수집한 Metric 호출 api
@@ -27,18 +27,22 @@ Aurora for MySQL Metric & Slow Query Monitoring
 ### .env
 #### 환경 변수 내용
 ```
-## MongoDB Connect
+## MongoDB Connection
 MONGODB_URI=
-MONGODB_DB_NAME=
-MONGODB_SLOWLOG_COLLECTION_NAME=rdsSlowQueries
-MONGODB_PLAN_COLLECTION_NAME=rdsQueriesPlan
-MONGODB_STATUS_COLLECTION_NAME=rdsCommandStatus
+MONGODB_DB_NAME=mgmt_db
+MONGODB_SLOWLOG_COLLECTION_NAME=mysql_slowquery
+MONGODB_PLAN_COLLECTION_NAME=mysql_slowquery_plan
+MONGODB_STATUS_COLLECTION_NAME=mysql_command_status
+MONGODB_RDS_INSTANCE_LIST_COLLATION_NAME=instance_list
+MONGODB_AURORA_INFO_COLLECTION_NAME=aurora_cluster_info
+MONGODB_HISTORY_COLLECTION_NAME=mysql_event_stat_hist
+MONGODB_DIGEST_COLLECTION_NAME=mysql_event_sum_digest
 
 ## encrypt key
 AES_KEY=
 AES_IV=
 
-## AWS Access Key
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
+## Slack Noti
+SLACK_API_TOKEN=
+SLACK_WEBHOOK_URL=
 ```
