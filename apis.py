@@ -1,7 +1,7 @@
 import uvicorn
 from starlette.staticfiles import StaticFiles
 from fastapi import FastAPI, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from fastapi.templating import Jinja2Templates
 from modules.mongodb_connector import MongoDBConnector
 from modules.time_utils import get_kst_time
@@ -26,6 +26,11 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/favicon.ico")
 async def get_favicon():
     return Response(content="", media_type="image/x-icon")
+
+
+@app.get("/health")
+async def health_check():
+    return JSONResponse(content={"status": "healthy"}, status_code=200)
 
 
 @app.on_event("startup")
