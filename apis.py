@@ -28,7 +28,7 @@ async def get_favicon():
     return Response(content="", media_type="image/x-icon")
 
 
-@app.get("/health")
+@app.get("/")
 async def health_check():
     return JSONResponse(content={"status": "healthy"}, status_code=200)
 
