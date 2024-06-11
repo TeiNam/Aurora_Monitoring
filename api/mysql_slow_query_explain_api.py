@@ -2,8 +2,9 @@ import re
 import sqlparse
 import json
 import pymysql.cursors
+from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, Query, Response
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from modules.mongodb_connector import MongoDBConnector
 from modules.crypto_utils import decrypt_password
@@ -11,6 +12,7 @@ from modules.load_instance import load_instances_from_mongodb
 from config import MONGODB_SLOWLOG_COLLECTION_NAME, MONGODB_PLAN_COLLECTION_NAME
 
 app = FastAPI()
+kst_delta = timedelta(hours=9)
 
 
 async def get_collection():
@@ -21,6 +23,17 @@ async def get_collection():
 async def get_plan_collection():
     db = await MongoDBConnector.get_database()
     return db[MONGODB_PLAN_COLLECTION_NAME]
+
+
+class Item(BaseModel):
+    created_at: datetime
+    pid: int
+    instance: str
+    db: str
+    user: str
+    sql_text: str
+    time: int
+    explain_result: str
 
 
 class SQLQueryExecutor:
@@ -129,3 +142,20 @@ async def download_markdown(pid: int = Query(...)):
     filename = f"slowlog_pid_{pid}.md"
     headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
     return Response(content=markdown_content, media_type="text/markdown", headers=headers)
+
+
+@app.get("/plans/")
+async def get_items():
+    db = await MongoDBConnector.get_database()
+    collection = db[MONGODB_PLAN_COLLECTION_NAME]
+    items = []
+    sort = [("_id", -1), ("explain_result", -1)]
+
+    async for item in collection.find({}).sort(sort):
+        item['_id'] = str(item['_id'])
+        item['explain_result'] = str(item['explain_result'])
+        if 'created_at' in item:
+            item['created_at'] = item['created_at'] + kst_delta
+        items.append(item)  # Add the item to the list
+
+    return items

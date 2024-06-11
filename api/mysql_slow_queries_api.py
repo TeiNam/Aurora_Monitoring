@@ -1,12 +1,12 @@
 import os
-from fastapi import FastAPI, Query, Depends
+from fastapi import FastAPI, Query
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 from modules.mongodb_connector import MongoDBConnector
+from config import MONGODB_SLOWLOG_COLLECTION_NAME
 
 app = FastAPI()
 
-MONGODB_SLOWLOG_COLLECTION_NAME = os.getenv("MONGODB_SLOWLOG_COLLECTION_NAME")
 kst_delta = timedelta(hours=9)
 
 
