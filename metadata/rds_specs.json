@@ -1,0 +1,558 @@
+{
+  "instance_class": "db.r6i.large",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "16 GiB"
+  }
+}
+{
+  "instance_class": "db.r6i.xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "4"
+    },
+    "RAM": "32 GiB"
+  }
+}
+{
+  "instance_class": "db.r6i.2xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "8"
+    },
+    "RAM": "64 GiB"
+  }
+}
+{
+  "instance_class": "db.r6i.4xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "16"
+    },
+    "RAM": "128 GiB"
+  }
+}
+{
+  "instance_class": "db.r6i.8xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "32"
+    },
+    "RAM": "256 GiB"
+  }
+}
+{
+  "instance_class": "db.r6i.12xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "48"
+    },
+    "RAM": "384 GiB"
+  }
+}
+{
+  "instance_class": "db.r6i.16xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "64"
+    },
+    "RAM": "512 GiB"
+  }
+}
+{
+  "instance_class": "db.r6i.24xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "96"
+    },
+    "RAM": "768 GiB"
+  }
+}
+{
+  "instance_class": "db.r7g.large",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "16 GiB"
+  }
+}
+{
+  "instance_class": "db.r7g.xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "4"
+    },
+    "RAM": "32 GiB"
+  }
+}
+{
+  "instance_class": "db.r7g.2xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "8"
+    },
+    "RAM": "64 GiB"
+  }
+}
+{
+  "instance_class": "db.r7g.4xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "16"
+    },
+    "RAM": "128 GiB"
+  }
+}
+{
+  "instance_class": "db.r7g.8xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "32"
+    },
+    "RAM": "256 GiB"
+  }
+}
+{
+  "instance_class": "db.r7g.12xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "48"
+    },
+    "RAM": "384 GiB"
+  }
+}
+{
+  "instance_class": "db.r7g.16xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "64"
+    },
+    "RAM": "512 GiB"
+  }
+}
+{
+  "instance_class": "db.r6g.large",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "16 GiB"
+  }
+}
+{
+  "instance_class": "db.r6g.xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "4"
+    },
+    "RAM": "32 GiB"
+  }
+}
+{
+  "instance_class": "db.r6g.2xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "8"
+    },
+    "RAM": "64 GiB"
+  }
+}
+{
+  "instance_class": "db.r6g.4xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "16"
+    },
+    "RAM": "128 GiB"
+  }
+}
+{
+  "instance_class": "db.r6g.8xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "32"
+    },
+    "RAM": "256 GiB"
+  }
+}
+{
+  "instance_class": "db.r6g.12xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "48"
+    },
+    "RAM": "384 GiB"
+  }
+}
+{
+  "instance_class": "db.r6g.16xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "64"
+    },
+    "RAM": "512 GiB"
+  }
+}
+{
+  "instance_class": "db.t3.micro",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "1 GiB"
+  }
+}
+{
+  "instance_class": "db.t3.small",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "2 GiB"
+  }
+}
+{
+  "instance_class": "db.t3.medium",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "4 GiB"
+  }
+}
+{
+  "instance_class": "db.t3.large",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "8 GiB"
+  }
+}
+{
+  "instance_class": "db.t3.xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "4"
+    },
+    "RAM": "16 GiB"
+  }
+}
+{
+  "instance_class": "db.t3.2xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "8"
+    },
+    "RAM": "32 GiB"
+  }
+}
+{
+  "instance_class": "db.t4g.micro",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "1 GiB"
+  }
+}
+{
+  "instance_class": "db.t4g.small",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "2 GiB"
+  }
+}
+{
+  "instance_class": "db.t4g.medium",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "4 GiB"
+  }
+}
+{
+  "instance_class": "db.t4g.large",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "8 GiB"
+  }
+}
+{
+  "instance_class": "db.t4g.xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "4"
+    },
+    "RAM": "16 GiB"
+  }
+}
+{
+  "instance_class": "db.t4g.2xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "8"
+    },
+    "RAM": "32 GiB"
+  }
+}
+{
+  "instance_class": "db.m5.large",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "8 GiB"
+  }
+}
+{
+  "instance_class": "db.m5.xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "4"
+    },
+    "RAM": "16 GiB"
+  }
+}
+{
+  "instance_class": "db.m5.2xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "8"
+    },
+    "RAM": "32 GiB"
+  }
+}
+{
+  "instance_class": "db.m5.4xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "16"
+    },
+    "RAM": "64 GiB"
+  }
+}
+{
+  "instance_class": "db.m5.12xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "48"
+    },
+    "RAM": "192 GiB"
+  }
+}
+{
+  "instance_class": "db.m5.24xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "96"
+    },
+    "RAM": "384 GiB"
+  }
+}
+{
+  "instance_class": "db.m6g.large",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "8 GiB"
+  }
+}
+{
+  "instance_class": "db.m6g.xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "4"
+    },
+    "RAM": "16 GiB"
+  }
+}
+{
+  "instance_class": "db.m6g.2xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "8"
+    },
+    "RAM": "32 GiB"
+  }
+}
+{
+  "instance_class": "db.m6g.4xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "16"
+    },
+    "RAM": "64 GiB"
+  }
+}
+{
+  "instance_class": "db.m6g.8xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "32"
+    },
+    "RAM": "128 GiB"
+  }
+}
+{
+  "instance_class": "db.m6g.12xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "48"
+    },
+    "RAM": "192 GiB"
+  }
+}
+{
+  "instance_class": "db.m6g.16xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "64"
+    },
+    "RAM": "256 GiB"
+  }
+}
+{
+  "instance_class": "db.m6i.large",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "8 GiB"
+  }
+}
+{
+  "instance_class": "db.m6i.xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "4"
+    },
+    "RAM": "16 GiB"
+  }
+}
+{
+  "instance_class": "db.m6i.2xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "8"
+    },
+    "RAM": "32 GiB"
+  }
+}
+{
+  "instance_class": "db.m6i.4xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "16"
+    },
+    "RAM": "64 GiB"
+  }
+}
+{
+  "instance_class": "db.m6i.8xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "32"
+    },
+    "RAM": "128 GiB"
+  }
+}
+{
+  "instance_class": "db.m6i.12xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "48"
+    },
+    "RAM": "192 GiB"
+  }
+}
+{
+  "instance_class": "db.m6i.16xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "64"
+    },
+    "RAM": "256 GiB"
+  }
+}
+{
+  "instance_class": "db.m6i.24xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "96"
+    },
+    "RAM": "384 GiB"
+  }
+}
+{
+  "instance_class": "db.m7g.large",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "2"
+    },
+    "RAM": "8 GiB"
+  }
+}
+{
+  "instance_class": "db.m7g.xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "4"
+    },
+    "RAM": "16 GiB"
+  }
+}
+{
+  "instance_class": "db.m7g.2xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "8"
+    },
+    "RAM": "32 GiB"
+  }
+}
+{
+  "instance_class": "db.m7g.4xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "16"
+    },
+    "RAM": "64 GiB"
+  }
+}
+{
+  "instance_class": "db.m7g.8xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "32"
+    },
+    "RAM": "128 GiB"
+  }
+}
+{
+  "instance_class": "db.m7g.12xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "48"
+    },
+    "RAM": "192 GiB"
+  }
+}
+{
+  "instance_class": "db.m7g.16xlarge",
+  "spec": {
+    "vCPU": {
+      "$numberInt": "64"
+    },
+    "RAM": "256 GiB"
+  }
+}
