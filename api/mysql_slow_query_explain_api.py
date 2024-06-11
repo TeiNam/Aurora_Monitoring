@@ -149,13 +149,15 @@ async def get_items():
     db = await MongoDBConnector.get_database()
     collection = db[MONGODB_PLAN_COLLECTION_NAME]
     items = []
-    sort = [("_id", -1), ("explain_result", -1)]
+    sort = [("_id", -1)]
 
     async for item in collection.find({}).sort(sort):
-        item['_id'] = str(item['_id'])
-        item['explain_result'] = str(item['explain_result'])
+        if '_id' in item:
+            del item['_id']
+        if 'explain_result' in item:
+            del item['explain_result']
         if 'created_at' in item:
             item['created_at'] = item['created_at'] + kst_delta
-        items.append(item)  # Add the item to the list
+        items.append(item)
 
     return items
