@@ -15,6 +15,7 @@ api_mapping = {
     "/api/mysql_explain": "api.mysql_slow_query_explain_api",
     "/api/memo": "api.memo_api",
     "/api/slow_query": "api.slow_query_stat_api",
+    "/api/mysql_io": "api.mysql_disk_usage_api",
 }
 
 app = FastAPI()

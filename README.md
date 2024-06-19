@@ -27,6 +27,7 @@
   - /api/mysql_explain/download: 슬로우 쿼리 저장된 플랜을 Markdown으로 내려받기
   - /api/mysql_explain/plans: 플랜이 저장된 리스트 가져오기
   - /api/slow_query/statistics: 슬로우 쿼리의 통계를 보여주기
+  - /api/mysql_io/status/?instance_name=: 디스크 사용량 가져오기
 
 ## [collector_app.py](collector_app.py)
 - collector 디렉토리 밑의 수집기를 정해진 시간 단위로 구동
