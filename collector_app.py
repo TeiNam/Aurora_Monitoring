@@ -3,6 +3,7 @@ import pytz
 from collector.mysql_slow_queries import run_mysql_slow_queries
 from collector.mysql_command_status import run_mysql_command_status
 from collector.aurora_cluster_info import get_aurora_info
+from collector.mysql_disk_status import run_selected_metrics_status
 from datetime import datetime, timedelta
 from modules.time_utils import get_kst_time
 
@@ -57,11 +58,15 @@ async def main():
     # get_aurora_task 15분 주기로 수집
     get_aurora_task = asyncio.create_task(run_periodically(get_aurora_info, 900))
 
+    # disk_usage_task 10분 주기로 수집
+    disk_usage_task = asyncio.create_task(run_periodically(run_selected_metrics_status, 600))
+
     # 예외가 발생해도 다른 태스크에 영향을 주지 않도록 함
     await asyncio.gather(
         slow_queries_task,
         command_status_task,
         get_aurora_task,
+        disk_usage_task,
         return_exceptions=True
     )
 
