@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from modules.mongodb_connector import MongoDBConnector
+from config import MONGODB_SLOWLOG_COLLECTION_NAME
 
 app = FastAPI()
-
 
 @app.get("/statistics")
 async def get_statistics():
@@ -45,10 +45,18 @@ async def get_statistics():
                 "user": "$dbs.user",
                 "count": "$dbs.count",
                 "max_time": "$dbs.max_time",
-                "total_time": "$dbs.total_time"
+                "total_time": "$dbs.total_time",
+                "avg_time": {
+                    "$round": [
+                        {
+                            "$cond": { "if": { "$ne": ["$dbs.count", 0] }, "then": { "$divide": ["$dbs.total_time", "$dbs.count"] }, "else": 0 }
+                        },
+                        3
+                    ]
+                }
             }
         }
     ]
-    cursor = db['Aurora4MySlowQuery'].aggregate(aggregation_pipeline)
+    cursor = db[MONGODB_SLOWLOG_COLLECTION_NAME].aggregate(aggregation_pipeline)
     result = await cursor.to_list(length=None)
     return result
