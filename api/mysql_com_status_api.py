@@ -30,7 +30,7 @@ def transform_data_to_table_format(data):
     return transformed_data
 
 
-@app.get("/status/")
+@app.get("/")
 async def read_status(instance_name: str = Query(None, description="The name of the instance to retrieve")):
     if instance_name:
         data = await get_command_status(instance_name)

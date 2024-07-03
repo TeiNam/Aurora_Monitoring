@@ -21,14 +21,14 @@ EXEC_TIME = int(os.getenv("SLOW_QUERY_EXEC_TIME", "2"))
 
 # API 관련 설정
 API_MAPPING = {
-    "/api/instance_setup": "api.instance_setup_api",
-    "/api/rds": "api.aurora_cluster_status_api",
-    "/api/mysql_status": "api.mysql_com_status_api",
-    "/api/mysql_slow_query": "api.mysql_slow_queries_api",
-    "/api/mysql_explain": "api.mysql_slow_query_explain_api",
-    "/api/memo": "api.memo_api",
-    "/api/slow_query": "api.slow_query_stat_api",
-    "/api/mysql_io": "api.mysql_disk_usage_api",
+    "/api/v1/instance_setup": "api.instance_setup_api",
+    "/api/v1/rds_status": "api.aurora_cluster_status_api",
+    "/api/v1/mysql_status": "api.mysql_com_status_api",
+    "/api/v1/mysql_slow_query": "api.mysql_slow_queries_api",
+    "/api/v1/mysql_explain": "api.mysql_slow_query_explain_api",
+    "/api/v1/memo": "api.memo_api",
+    "/api/v1/query_statistics": "api.slow_query_stat_api",
+    "/api/v1/disk_usage": "api.mysql_disk_usage_api",
 }
 
 ALLOWED_ORIGINS = [

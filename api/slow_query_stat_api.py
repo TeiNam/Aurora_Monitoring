@@ -4,7 +4,8 @@ from config import MONGODB_SLOWLOG_COLLECTION_NAME
 
 app = FastAPI()
 
-@app.get("/statistics")
+
+@app.get("/")
 async def get_statistics():
     db = await MongoDBConnector.get_database()
     aggregation_pipeline = [

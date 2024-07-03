@@ -14,18 +14,15 @@ from config import (
     ALLOWED_ORIGINS
 )
 
-# 로깅 설정
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     await MongoDBConnector.initialize()
     logger.info(f"{get_kst_time()} - MongoDB connection initialized.")
     yield
-    # Shutdown
     if MongoDBConnector.client:
         MongoDBConnector.client.close()
         logger.info(f"{get_kst_time()} - MongoDB connection closed.")
@@ -37,7 +34,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS 설정
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -46,7 +42,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static files setup
 app.mount("/static", StaticFiles(directory=STATIC_FILES_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
@@ -87,7 +82,6 @@ for route, module_name in API_MAPPING.items():
     app.mount(route, module.app)
 
 
-# 전역 예외 처리기
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
     return JSONResponse(
@@ -103,6 +97,7 @@ async def general_exception_handler(request, exc):
         status_code=500,
         content={"message": "Internal server error"},
     )
+
 
 if __name__ == "__main__":
     uvicorn.run("apis:app", host=HOST, port=PORT, reload=True)

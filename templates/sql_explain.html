@@ -3,19 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>MySQL Slow Query Explain Tool</title>
-    <style>
-        button {
-            height: 2.8em;
-            width: 9.6em;
-            font-size: 1.0em;
-            text-align: center;
-        }
-    </style>
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <h1>Aurora for MySQL Slow Query Explain Tool</h1>
-    <main id="content" style="width: 100%">
+    <h1 id="heading">Aurora for MySQL Slow Query Explain Tool</h1>
+    <main id="content">
         <section class="form">
             <h2>Execute SQL plan & Document Download</h2>
             <h3>You can save the current plan for a query, and download the query and plan.<br>
@@ -47,7 +39,6 @@
         </section>
     </main>
     <footer>
-        <br>
         <p id="copyright-info">Designed by <span id="author"></span> &copy; <span id="copyright-year"></span></p>
     </footer>
 
@@ -64,33 +55,27 @@
 
         document.getElementById('saveExplain').addEventListener('click', function(event) {
             const pid = document.getElementById('pid').value;
-            const protocol = window.location.protocol;
-            const host = window.location.host;
-            const apiUrl = `${protocol}//${host}/api/mysql_explain/explain?pid=${pid}`;
+            const apiUrl = `/api/v1/mysql_explain/explain?pid=${pid}`;
 
-            fetch(apiUrl, {
-                method: 'POST',
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => { throw new Error(text) });
-                }
-                return response.json();
-            })
-            .then(data => {
-                alert('Explain executed and saved: ' + data.message);
-            })
-            .catch(error => {
-                console.error('There has been a problem with your fetch operation:', error);
-                alert('Error: ' + error.message);
-            });
+            fetch(apiUrl, { method: 'POST' })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => { throw new Error(text) });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert('Explain executed and saved: ' + data.message);
+                })
+                .catch(error => {
+                    console.error('There has been a problem with your fetch operation:', error);
+                    alert('Error: ' + error.message);
+                });
         });
 
         document.getElementById('downloadLog').addEventListener('click', function(event) {
             const pid = document.getElementById('pid').value;
-            const protocol = window.location.protocol;
-            const host = window.location.host;
-            const apiUrl = `${protocol}//${host}/api/mysql_explain/download?pid=${pid}`;
+            const apiUrl = `/api/v1/mysql_explain/download?pid=${pid}`;
 
             fetch(apiUrl)
                 .then(response => {
@@ -115,8 +100,8 @@
         });
 
         const pageInfo = {
-            author: "DBRE & DA \"Tei\"",  // 작성자
-            copyrightYear: "2023-12-01" // 만든 날짜
+            author: "DBRE & DA \"Tei\"",
+            copyrightYear: "2023-12-01"
         };
         document.getElementById("author").textContent = pageInfo.author;
         document.getElementById("copyright-year").textContent = pageInfo.copyrightYear;
