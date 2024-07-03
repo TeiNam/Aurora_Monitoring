@@ -1,27 +1,54 @@
 import uvicorn
-from starlette.staticfiles import StaticFiles
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import Response, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import logging
+
 from modules.mongodb_connector import MongoDBConnector
 from modules.time_utils import get_kst_time
+from config import (
+    API_MAPPING, STATIC_FILES_DIR, TEMPLATES_DIR, HOST, PORT,
+    ALLOWED_ORIGINS
+)
 
-# APIs Mapping for Mounting
-api_mapping = {
-    "/api/instance_setup": "api.instance_setup_api",
-    "/api/rds": "api.aurora_cluster_status_api",
-    "/api/mysql_status": "api.mysql_com_status_api",
-    "/api/mysql_slow_query": "api.mysql_slow_queries_api",
-    "/api/mysql_explain": "api.mysql_slow_query_explain_api",
-    "/api/memo": "api.memo_api",
-    "/api/slow_query": "api.slow_query_stat_api",
-    "/api/mysql_io": "api.mysql_disk_usage_api",
-}
+# 로깅 설정
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-app = FastAPI()
-app.mount("/css", StaticFiles(directory="css"), name="css")
-app.mount("/js", StaticFiles(directory="js"), name="js")
-templates = Jinja2Templates(directory="templates")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await MongoDBConnector.initialize()
+    logger.info(f"{get_kst_time()} - MongoDB connection initialized.")
+    yield
+    # Shutdown
+    if MongoDBConnector.client:
+        MongoDBConnector.client.close()
+        logger.info(f"{get_kst_time()} - MongoDB connection closed.")
+
+app = FastAPI(
+    lifespan=lifespan,
+    title="Monitoring Tool API",
+    description="API for monitoring MySQL and managing related data",
+    version="1.0.0",
+)
+
+# CORS 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Static files setup
+app.mount("/static", StaticFiles(directory=STATIC_FILES_DIR), name="static")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 @app.get("/favicon.ico")
@@ -29,43 +56,53 @@ async def get_favicon():
     return Response(content="", media_type="image/x-icon")
 
 
-@app.get("/")
+@app.get("/", tags=["Health Check"])
 async def health_check():
-    return JSONResponse(content={"status": "healthy"}, status_code=200)
+    try:
+        db = await MongoDBConnector.get_database()
+        await db.command('ping')
+        return JSONResponse(content={"status": "healthy", "database": "connected"}, status_code=200)
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return JSONResponse(content={"status": "unhealthy", "database": "disconnected"}, status_code=500)
 
 
-@app.on_event("startup")
-async def on_startup():
-    await MongoDBConnector.initialize()
-    print(f"{get_kst_time()} - MongoDB connection established successfully.")
-
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    if MongoDBConnector.client:
-        await MongoDBConnector.client.close()
-    print(f"{get_kst_time()} - MongoDB connection closed.")
-
-
-@app.get("/sql-plan")
+@app.get("/sql-plan", tags=["UI"])
 async def sql_explain(request: Request):
     return templates.TemplateResponse("sql_explain.html", {"request": request})
 
 
-@app.get("/instance-setup")
+@app.get("/instance-setup", tags=["UI"])
 async def instance_setup(request: Request):
     return templates.TemplateResponse("instance_setup.html", {"request": request})
 
 
-@app.get("/memo")
+@app.get("/memo", tags=["UI"])
 async def memo_page(request: Request):
     return templates.TemplateResponse("memo.html", {"request": request})
 
-
 # Mounting the APIs
-for route, module_name in api_mapping.items():
-    api_app = __import__(module_name, fromlist=['app']).app
-    app.mount(route, api_app)
+for route, module_name in API_MAPPING.items():
+    module = __import__(module_name, fromlist=['app'])
+    app.mount(route, module.app)
+
+
+# 전역 예외 처리기
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.detail},
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    logger.error(f"Unhandled exception: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal server error"},
+    )
 
 if __name__ == "__main__":
-    uvicorn.run("apis:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("apis:app", host=HOST, port=PORT, reload=True)
