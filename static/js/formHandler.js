@@ -1,6 +1,6 @@
 async function loadInstanceList() {
     try {
-        const response = await fetch('/api/instance_setup/list_instances/');
+        const response = await fetch('/api/v1/instance_setup/list_instances/');
         if (!response.ok) {
             alert('Instance data를 불러오는 데 실패했습니다.');
             return;
@@ -46,7 +46,7 @@ async function deleteInstance(instanceName) {
     if (!confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-        const response = await fetch(`/api/instance_setup/delete_instance/?instance_name=${instanceName}`, {
+        const response = await fetch(`/api/v1/instance_setup/delete_instance/?instance_name=${instanceName}`, {
             method: 'DELETE'
         });
         if (!response.ok) {
@@ -86,7 +86,7 @@ document.getElementById('rdsForm').onsubmit = async (e) => {
     const formProps = Object.fromEntries(formData);
 
     try {
-        const response = await fetch('/api/instance_setup/add_instance/', {
+        const response = await fetch('/api/v1/instance_setup/add_instance/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
