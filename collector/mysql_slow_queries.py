@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 from modules.mongodb_connector import MongoDBConnector
 from modules.crypto_utils import decrypt_password
-from modules.time_utils import get_kst_time
 from modules.load_instance import load_instances_from_mongodb
 from config import (
     MONGODB_SLOWLOG_COLLECTION_NAME, EXEC_TIME, POOL_SIZE,

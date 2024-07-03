@@ -1,7 +1,7 @@
 import aioboto3
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from modules.mongodb_connector import MongoDBConnector
 from modules.load_instance import load_instances_from_mongodb
 from config import (
