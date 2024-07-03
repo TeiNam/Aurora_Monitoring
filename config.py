@@ -31,8 +31,7 @@ API_MAPPING = {
 }
 
 ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "https://mgmt.py.devops.torder.tech",  # 프로덕션 도메인
+    "http://localhost:8000"
 ]
 
 # 앱 설정
