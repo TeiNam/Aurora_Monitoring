@@ -15,6 +15,21 @@ body {
     font-size: 1.2em;
 }
 
+/* Layout */
+#content {
+    width: 80%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#instanceList, .form {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
 /* Form Styles */
 .form {
     display: flex;
@@ -47,13 +62,12 @@ body {
     min-width: 150px;
 }
 
-.field input, .input-field {
+.field input, .field select {
     flex-grow: 1;
     background: none;
     border: none;
     outline: none;
     color: #d3d3d3;
-    width: 100%;
 }
 
 /* Hide number input spinners */
@@ -158,23 +172,26 @@ button:hover span:not(:nth-child(6)) {
     text-align: center;
 }
 
-.smallerButton {
-    height: 30px;
-    width: 80px;
+/* Table Styles */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 2em;
 }
 
-/* Table Styles */
 table {
     width: 100%;
     border-collapse: collapse;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    table-layout: fixed;
 }
 
 th, td {
     padding: 8px;
     text-align: left;
-    min-width: 100px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 th {
@@ -182,21 +199,19 @@ th {
 }
 
 tr:nth-child(even) {
-    background-color: #171717;
+    background-color: #1a1a1a;
 }
 
 tr:hover {
-    background-color: #171717;
+    background-color: #222;
 }
 
 #instanceTable {
-    width: 60%;
-    margin-left: 37px;
-    margin-right: auto;
+    width: 100%;
 }
 
 .delete-cell {
-    width: 10%;
+    width: 80px;
     text-align: center;
 }
 
@@ -209,22 +224,34 @@ tr:hover {
     cursor: pointer;
     font-size: 0.8em;
     width: 100%;
+    text-align: center;
+    transition: background-color 0.3s ease;
 }
 
 .delete-button:hover {
     background-color: #ff0000;
 }
 
+.button-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+/* Column widths */
+#instanceTable th:nth-child(1), #instanceTable td:nth-child(1) { width: 3%; } /* Environment */
+#instanceTable th:nth-child(2), #instanceTable td:nth-child(2) { width: 4%; } /* DB Type */
+#instanceTable th:nth-child(3), #instanceTable td:nth-child(3) { width: 7%; } /* Region */
+#instanceTable th:nth-child(4), #instanceTable td:nth-child(4) { width: 6%; } /* Cluster Name */
+#instanceTable th:nth-child(5), #instanceTable td:nth-child(5) { width: 13%; } /* Instance Name */
+#instanceTable th:nth-child(6), #instanceTable td:nth-child(6) { width: 25%; } /* Host */
+#instanceTable th:nth-child(7), #instanceTable td:nth-child(7) { width: 2%; } /* Port */
+#instanceTable th:nth-child(8), #instanceTable td:nth-child(8) { width: 4%; } /* Actions */
+
 .memo-content-cell {
     width: 100%;
     white-space: pre-wrap;
-}
-
-/* Layout */
-#content {
-    width: 90%;
-    margin: 0 auto;
-    display: block;
 }
 
 /* Footer */

@@ -10,10 +10,11 @@
     <main id="content">
         <section id="instanceList">
             <h2>Registered Instances</h2>
-            <table id="instanceTable">
-                <thead>
+            <div class="table-container">
+                <table id="instanceTable">
+                    <thead>
                     <tr>
-                        <th>Environment</th>
+                        <th>Env</th>
                         <th>DB Type</th>
                         <th>Region</th>
                         <th>Cluster Name</th>
@@ -22,11 +23,12 @@
                         <th>Port</th>
                         <th>Actions</th>
                     </tr>
-                </thead>
-                <tbody>
+                    </thead>
+                    <tbody>
                     <!-- 동적 내용 -->
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </section>
         <br>
         <h2>Add Instance</h2>
@@ -35,6 +37,7 @@
                 <label for="environment">Environment:</label>
                 <select class="input-field" id="environment" name="environment" required>
                     <option value="DEV">DEV</option>
+                    <option value="STG">STG</option>
                     <option value="TEST">TEST</option>
                     <option value="PROD">PROD</option>
                 </select>
@@ -93,7 +96,7 @@
     <script src="/static/js/formHandler.js"></script>
     <script>
         const pageInfo = {
-            author: "DBRE & DA \"Tei\"",
+            author: "rastalion.dev DBRE & DA \"Tei\"",
             copyrightYear: "2023-12-01"
         };
         document.getElementById("author").textContent = pageInfo.author;

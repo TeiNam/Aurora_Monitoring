@@ -15,27 +15,30 @@ async function loadInstanceList() {
         tableBody.innerHTML = '';
 
         data.instances.forEach(instance => {
-            if (!instance.cluster_name || !instance.instance_name) {
-                console.error('Invalid instance data:', instance);
-                return;
-            }
+        if (!instance.cluster_name || !instance.instance_name) {
+            console.error('Invalid instance data:', instance);
+            return;
+        }
 
-            const row = tableBody.insertRow();
-            row.insertCell().textContent = instance.environment;
-            row.insertCell().textContent = instance.db_type;
-            row.insertCell().textContent = instance.region;
-            row.insertCell().textContent = instance.cluster_name;
-            row.insertCell().textContent = instance.instance_name;
-            row.insertCell().textContent = instance.host;
-            row.insertCell().textContent = instance.port;
+        const row = tableBody.insertRow();
+        row.insertCell().textContent = instance.environment;
+        row.insertCell().textContent = instance.db_type;
+        row.insertCell().textContent = instance.region;
+        row.insertCell().textContent = instance.cluster_name;
+        row.insertCell().textContent = instance.instance_name;
+        row.insertCell().textContent = instance.host;
+        row.insertCell().textContent = instance.port;
 
-            const deleteCell = row.insertCell();
-            const deleteButton = document.createElement('button');
-            deleteButton.textContent = 'Delete';
-            deleteButton.onclick = function() { deleteInstance(instance.instance_name); };
-            deleteButton.className = 'smallerButton';
-            deleteCell.appendChild(deleteButton);
-        });
+        const deleteCell = row.insertCell();
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'button-container';
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = function() { deleteInstance(instance.instance_name); };
+        deleteButton.className = 'delete-button';
+        buttonContainer.appendChild(deleteButton);
+        deleteCell.appendChild(buttonContainer);
+    });
     } catch (error) {
         console.error('Error:', error);
         alert('Error loading instance list: ' + error.message);
