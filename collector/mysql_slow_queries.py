@@ -13,13 +13,33 @@ from modules.crypto_utils import decrypt_password
 from modules.load_instance import load_instances_from_mongodb
 from config import (
     MONGODB_SLOWLOG_COLLECTION_NAME, EXEC_TIME, POOL_SIZE,
-    MAX_RETRIES, RETRY_DELAY, LOG_LEVEL, LOG_FORMAT
+    MAX_RETRIES, RETRY_DELAY, LOG_LEVEL, LOG_FORMAT,
+    IGNORE_LOGGERS, IGNORE_MESSAGES
 )
 
 load_dotenv()
 
+# 커스텀 필터 클래스 정의
+class IgnoreFilter(logging.Filter):
+    def __init__(self, ignore_messages):
+        super().__init__()
+        self.ignore_messages = ignore_messages
+
+    def filter(self, record):
+        return not any(msg in record.getMessage() for msg in self.ignore_messages)
+
+# 로깅 설정
 logging.basicConfig(level=getattr(logging, LOG_LEVEL), format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
+
+# 무시할 로거 설정
+for logger_name in IGNORE_LOGGERS:
+    logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+# 메시지 필터 적용
+for handler in logging.root.handlers:
+    handler.addFilter(IgnoreFilter(IGNORE_MESSAGES))
+
 
 
 @dataclass

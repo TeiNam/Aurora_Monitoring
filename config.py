@@ -69,3 +69,5 @@ RETRY_DELAY = int(os.getenv("RETRY_DELAY", "5"))
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
+IGNORE_LOGGERS = ['asyncmy', 'aiomysql']  # 무시할 로거 이름 리스트
+IGNORE_MESSAGES = ["'INFORMATION_SCHEMA.PROCESSLIST' is deprecated"]  # 무시할 메시지 리스트
