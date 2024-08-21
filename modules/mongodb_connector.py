@@ -2,7 +2,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from config import MONGODB_URI, MONGODB_DB_NAME
 import logging
 
-
 class MongoDBConnector:
     client = None
     db = None
@@ -11,8 +10,15 @@ class MongoDBConnector:
     async def initialize(cls):
         if cls.client is None:
             try:
-                cls.client = AsyncIOMotorClient(MONGODB_URI)
+                cls.client = AsyncIOMotorClient(
+                    MONGODB_URI,
+                    tls=True,
+                    tlsAllowInvalidCertificates=True,
+                    tlsAllowInvalidHostnames=True,
+                    directConnection=False
+                )
                 cls.db = cls.client[MONGODB_DB_NAME]
+                logging.info("MongoDB에 성공적으로 연결되었습니다.")
             except Exception as e:
                 logging.error(f"MongoDB 연결에 실패했습니다: {e}")
                 cls.client = None
@@ -32,7 +38,14 @@ class MongoDBConnector:
     @classmethod
     async def _try_connect(cls):
         try:
-            cls.client = AsyncIOMotorClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+            cls.client = AsyncIOMotorClient(
+                MONGODB_URI,
+                tls=True,
+                tlsAllowInvalidCertificates=True,
+                tlsAllowInvalidHostnames=True,
+                directConnection=False,
+                serverSelectionTimeoutMS=5000
+            )
         except Exception as e:
             cls.client = None
             logging.error(f"MongoDB 재연결 시도 실패: {e}")
@@ -41,6 +54,5 @@ class MongoDBConnector:
     async def reconnect(cls):
         cls.client = None
         await cls.initialize()
-
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

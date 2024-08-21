@@ -1,6 +1,7 @@
 import asyncio
 import pytz
 import logging
+import asyncmy
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
@@ -43,7 +44,7 @@ class MySQLDiskStatusMonitor:
         instance_name = instance['instance_name']
         for attempt in range(MAX_RETRIES):
             try:
-                pool = await Pool.create(
+                pool = await asyncmy.create_pool(
                     host=instance['host'],
                     port=instance['port'],
                     user=instance['user'],

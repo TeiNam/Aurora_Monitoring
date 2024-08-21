@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 
 from asyncmy.connection import Connection
 from asyncmy.pool import Pool
+import asyncmy
 
 from modules.load_instance import load_instances_from_mongodb
 from modules.mongodb_connector import MongoDBConnector
@@ -34,7 +35,7 @@ class MySQLCommandStatusMonitor:
         instance_name = instance['instance_name']
         for attempt in range(MAX_RETRIES):
             try:
-                pool = await Pool.create(
+                pool = await asyncmy.create_pool(
                     host=instance['host'],
                     port=instance['port'],
                     user=instance['user'],
