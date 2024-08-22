@@ -6,8 +6,7 @@ from config import MONGODB_AURORA_INFO_COLLECTION_NAME
 app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 
-
-@app.get("/aurora_cluster/")
+@app.get("/")
 async def get_all_aurora_cluster():
     logging.info("Connecting to MongoDB...")
     db = await MongoDBConnector.get_database()
@@ -27,23 +26,17 @@ async def get_all_aurora_cluster():
     async for document in cursor:
         logging.info(f"Document found: {document}")
         ordered_document = {
-            "region": document.get("region"),
+            "Region": document.get("Region"),
             "DBClusterIdentifier": document.get("DBClusterIdentifier"),
             "DBInstanceIdentifier": document.get("DBInstanceIdentifier"),
             "IsClusterWriter": document.get("IsClusterWriter"),
+            "Engine": document.get("Engine"),
             "EngineVersion": document.get("EngineVersion"),
-            "DBInstanceClass": document.get("DBInstanceClass"),
-            "vCPU": document.get("vCPU"),
-            "RAM": document.get("RAM"),
-            "DBInstanceStatus": document.get("DBInstanceStatus"),
-            "AvailabilityZone": document.get("AvailabilityZone"),
             "MultiAZ": document.get("MultiAZ"),
-            "DeletionProtection": document.get("DeletionProtection"),
-            "Environment": document.get("Environment"),
+            "MasterUsername": document.get("MasterUsername"),
+            "Status": document.get("Status"),
             "ClusterCreateTime": document.get("ClusterCreateTime"),
-            "InstanceCreateTime": document.get("InstanceCreateTime"),
-            "created_at": document.get("created_at"),
-            "last_updated_at": document.get("last_updated_at")
+            "last_updated": document.get("last_updated")
         }
         rds_instances_data.append(ordered_document)
 

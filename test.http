@@ -1,0 +1,18 @@
+### Environment variables
+@hostname = localhost
+@port = 8000
+@host = {{hostname}}:{{port}}
+@contentType = application/json
+
+### 1. Get status for a specific instance without specifying commands
+GET http://localhost:8000/api/v1/disk_usage?instance_name=prd-capssmart-order-instance-1
+Accept: application/json
+
+### Get all Aurora Cluster information
+GET http://{{host}}/api/v1/aurora_cluster/
+Accept: {{contentType}}
+
+### Get all Aurora Cluster information (with headers for debugging)
+GET http://{{host}}/api/v1/aurora_cluster/
+Accept: {{contentType}}
+X-Request-ID: test-request-001

@@ -1,154 +1,110 @@
-import aioboto3
 import asyncio
+import boto3
+from botocore.exceptions import ClientError
 import logging
-from typing import Dict, Any, Optional, List
-from botocore.exceptions import BotoCoreError, ClientError
 from modules.mongodb_connector import MongoDBConnector
-from modules.load_instance import load_instances_from_mongodb
+from pymongo import UpdateOne
+from datetime import datetime
 from config import (
-    MONGODB_AURORA_INFO_COLLECTION_NAME,
-    RDS_SPECS_COLLECTION_NAME,
-    LOG_LEVEL,
-    LOG_FORMAT
+    MONGODB_RDS_INSTANCE_LIST_COLLATION_NAME,
+    MONGODB_AURORA_INFO_COLLECTION_NAME
 )
 
-logging.basicConfig(level=getattr(logging, LOG_LEVEL), format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 class AuroraInfoCollector:
     def __init__(self):
-        self.db = None
-        self.session = aioboto3.Session()
+        self.ec2_client = boto3.client('ec2')
+        self.mongodb_connector = MongoDBConnector()
+        self.rds_instance_collection = MONGODB_RDS_INSTANCE_LIST_COLLATION_NAME
+        self.aurora_info_collection = MONGODB_AURORA_INFO_COLLECTION_NAME
 
-    async def initialize(self):
-        await MongoDBConnector.initialize()
-        self.db = await MongoDBConnector.get_database()
-
-    async def fetch_instance_specs_from_mongodb(self, instance_class: str) -> Optional[Dict[str, Any]]:
-        collection = self.db[RDS_SPECS_COLLECTION_NAME]
-        pipeline = [
-            {'$match': {'instance_class': instance_class}},
-            {'$project': {'_id': 0, 'vCPU': '$spec.vCPU', 'RAM': '$spec.RAM'}}
-        ]
-        cursor = collection.aggregate(pipeline)
-        spec_data = await cursor.to_list(length=1)
-        if not spec_data:
-            logger.warning(f"No specs found for {instance_class}")
-            return None
-        return spec_data[0]
-
-    async def get_rds_instance_info(self, client: Any, instance_name: str) -> Optional[Dict[str, Any]]:
+    async def get_all_regions(self):
         try:
-            response = await client.describe_db_instances(DBInstanceIdentifier=instance_name)
-            instances = response.get('DBInstances', [])
-            if instances:
-                logger.info(f"Found instance: {instance_name}")
-                return instances[0]
-            logger.warning(f"No instances found with identifier: {instance_name}")
-            return None
+            response = self.ec2_client.describe_regions()
+            return [region['RegionName'] for region in response['Regions']]
         except ClientError as e:
-            logger.error(f"Error fetching instance {instance_name}: {e}")
-            return None
+            logger.error(f"리전 정보 가져오기 실패: {e}")
+            return []
 
-    async def get_rds_cluster_info(self, client: Any, cluster_identifier: str) -> Optional[Dict[str, Any]]:
+    async def get_aurora_clusters(self, region):
+        rds_client = boto3.client('rds', region_name=region)
         try:
-            response = await client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)
-            clusters = response.get('DBClusters', [])
-            if clusters:
-                return clusters[0]
-            logger.warning(f"No clusters found with identifier: {cluster_identifier}")
-            return None
+            response = rds_client.describe_db_clusters()
+            return [(cluster, region) for cluster in response['DBClusters']]
         except ClientError as e:
-            logger.error(f"Error fetching cluster {cluster_identifier}: {e}")
-            return None
+            logger.error(f"{region} 리전의 Aurora 클러스터 정보 가져오기 실패: {e}")
+            return []
 
-    async def fetch_rds_instance_data(self, client: Any, instance_name: str, region: str) -> Optional[Dict[str, Any]]:
-        try:
-            instance_data = await self.get_rds_instance_info(client, instance_name)
-            if not instance_data:
-                return None
+    async def get_all_aurora_clusters(self):
+        regions = await self.get_all_regions()
+        tasks = [self.get_aurora_clusters(region) for region in regions]
+        results = await asyncio.gather(*tasks)
+        return [item for sublist in results for item in sublist]
 
-            cluster_identifier = instance_data.get('DBClusterIdentifier')
-            if not cluster_identifier:
-                logger.info(f"Instance {instance_name} is not part of an Aurora cluster.")
-                return None
-
-            cluster_data = await self.get_rds_cluster_info(client, cluster_identifier)
-            if not cluster_data:
-                return None
-
-            is_cluster_writer = any(
-                member.get('DBInstanceIdentifier') == instance_name and member.get('IsClusterWriter', False)
-                for member in cluster_data.get('DBClusterMembers', [])
-            )
-
-            environment_value = next(
-                (tag['Value'] for tag in cluster_data.get('TagList', []) if tag['Key'] == 'ENVIRONMENT'),
-                None
-            )
-
-            instance_class = instance_data.get('DBInstanceClass')
-            spec_data = await self.fetch_instance_specs_from_mongodb(instance_class)
-
-            return {
-                'region': region,
-                'DBClusterIdentifier': cluster_identifier,
-                'DBInstanceIdentifier': instance_data.get('DBInstanceIdentifier'),
-                'MultiAZ': cluster_data.get('MultiAZ', False),
-                'IsClusterWriter': is_cluster_writer,
-                'EngineVersion': instance_data.get('EngineVersion'),
-                'DBInstanceClass': instance_class,
-                'vCPU': spec_data.get('vCPU') if spec_data else None,
-                'RAM': spec_data.get('RAM') if spec_data else None,
-                'AvailabilityZone': instance_data.get('AvailabilityZone'),
-                'DBInstanceStatus': instance_data.get('DBInstanceStatus'),
-                'DeletionProtection': cluster_data.get('DeletionProtection', False),
-                'ClusterCreateTime': cluster_data.get('ClusterCreateTime'),
-                'InstanceCreateTime': instance_data.get('InstanceCreateTime'),
-                'Environment': environment_value,
-            }
-        except Exception as e:
-            logger.error(f"Error processing instance {instance_name}: {e}")
-            return None
-
-    async def fetch_and_save_rds_instance_data(self, instance_info: Dict[str, Any]):
-        region = instance_info.get('region')
-        instance_name = instance_info.get('instance_name')
-
-        if not region:
-            logger.error(f"No region specified for instance {instance_name}")
-            return
-
-        async with self.session.client('rds', region_name=region) as client:
-            instance_data = await self.fetch_rds_instance_data(client, instance_name, region)
-            if instance_data:
-                collection = self.db[MONGODB_AURORA_INFO_COLLECTION_NAME]
-                await collection.update_one(
-                    {"DBInstanceIdentifier": instance_name},
-                    {"$set": instance_data, "$currentDate": {"last_updated_at": True}},
-                    upsert=True
-                )
-                logger.info(f"Updated info for instance {instance_name} in region {region}")
-            else:
-                logger.info(f"Instance {instance_name} in region {region} is not part of an Aurora cluster or data fetch failed.")
+    async def get_cluster_info(self, cluster, region):
+        return {
+            'Region': region,
+            'DBClusterIdentifier': cluster['DBClusterIdentifier'],
+            'Engine': cluster['Engine'],
+            'EngineVersion': cluster['EngineVersion'],
+            'MultiAZ': cluster['MultiAZ'],
+            'MasterUsername': cluster['MasterUsername'],
+            'Status': cluster['Status'],
+            'ClusterCreateTime': cluster['ClusterCreateTime'].isoformat(),
+        }
 
     async def get_aurora_info(self):
-        await self.initialize()
-        instances_info = await load_instances_from_mongodb()
+        db = await self.mongodb_connector.get_database()
+        instance_collection = db[self.rds_instance_collection]
+        aurora_info_collection = db[self.aurora_info_collection]
 
-        tasks = [self.fetch_and_save_rds_instance_data(instance) for instance in instances_info]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        instance_list = await instance_collection.find({}).to_list(length=None)
+        all_clusters = await self.get_all_aurora_clusters()
 
-        aurora_instances = [r for r in results if r is not None]
-        logger.info(f"Processed {len(aurora_instances)} Aurora instances.")
+        update_operations = []
+        for instance in instance_list:
+            cluster_name = instance['cluster_name']
+            matching_cluster = next((c for c, r in all_clusters if c['DBClusterIdentifier'] == cluster_name), None)
+            matching_region = next((r for c, r in all_clusters if c['DBClusterIdentifier'] == cluster_name), None)
 
-        for result in results:
-            if isinstance(result, Exception):
-                logger.error(f"Task resulted in error: {result}")
+            if matching_cluster and matching_region:
+                cluster_info = await self.get_cluster_info(matching_cluster, matching_region)
+                members = matching_cluster['DBClusterMembers']
 
-async def run_aurora_info_collection():
+                for member in members:
+                    update_operations.append(
+                        UpdateOne(
+                            {
+                                "DBClusterIdentifier": cluster_name,
+                                "DBInstanceIdentifier": member['DBInstanceIdentifier']
+                            },
+                            {"$set": {
+                                **cluster_info,
+                                "DBInstanceIdentifier": member['DBInstanceIdentifier'],
+                                "IsClusterWriter": member['IsClusterWriter'],
+                                "last_updated": datetime.utcnow()
+                            }},
+                            upsert=True
+                        )
+                    )
+
+                logger.info(f"Prepared update for cluster: {cluster_name} in region: {matching_region} with {len(members)} members")
+            else:
+                logger.warning(f"No matching Aurora cluster found for: {cluster_name}")
+
+        if update_operations:
+            result = await aurora_info_collection.bulk_write(update_operations)
+            logger.info(f"Bulk update completed. Modified {result.modified_count} documents.")
+
+async def run_aurora_info_collector():
     collector = AuroraInfoCollector()
-    await collector.get_aurora_info()
+    try:
+        await collector.get_aurora_info()
+        logger.info("Aurora info collection completed successfully.")
+    except Exception as e:
+        logger.error(f"Error in Aurora info collection: {e}")
 
-if __name__ == '__main__':
-    asyncio.run(run_aurora_info_collection())
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    asyncio.run(run_aurora_info_collector())

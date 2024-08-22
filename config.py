@@ -22,7 +22,7 @@ EXEC_TIME = int(os.getenv("SLOW_QUERY_EXEC_TIME", "2"))
 # API 관련 설정
 API_MAPPING = {
     "/api/v1/instance_setup": "api.instance_setup_api",
-    "/api/v1/rds_status": "api.aurora_cluster_status_api",
+    "/api/v1/aurora_cluster": "api.aurora_cluster_status_api",
     "/api/v1/mysql_status": "api.mysql_com_status_api",
     "/api/v1/mysql_slow_query": "api.mysql_slow_queries_api",
     "/api/v1/mysql_explain": "api.mysql_slow_query_explain_api",
