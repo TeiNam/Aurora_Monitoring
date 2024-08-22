@@ -14,18 +14,9 @@ logger = logging.getLogger(__name__)
 
 class AuroraInfoCollector:
     def __init__(self):
-        self.ec2_client = boto3.client('ec2')
         self.mongodb_connector = MongoDBConnector()
         self.rds_instance_collection = MONGODB_RDS_INSTANCE_LIST_COLLATION_NAME
         self.aurora_info_collection = MONGODB_AURORA_INFO_COLLECTION_NAME
-
-    async def get_all_regions(self):
-        try:
-            response = self.ec2_client.describe_regions()
-            return [region['RegionName'] for region in response['Regions']]
-        except ClientError as e:
-            logger.error(f"리전 정보 가져오기 실패: {e}")
-            return []
 
     async def get_aurora_clusters(self, region):
         rds_client = boto3.client('rds', region_name=region)
@@ -36,8 +27,7 @@ class AuroraInfoCollector:
             logger.error(f"{region} 리전의 Aurora 클러스터 정보 가져오기 실패: {e}")
             return []
 
-    async def get_all_aurora_clusters(self):
-        regions = await self.get_all_regions()
+    async def get_all_aurora_clusters(self, regions):
         tasks = [self.get_aurora_clusters(region) for region in regions]
         results = await asyncio.gather(*tasks)
         return [item for sublist in results for item in sublist]
@@ -59,17 +49,21 @@ class AuroraInfoCollector:
         instance_collection = db[self.rds_instance_collection]
         aurora_info_collection = db[self.aurora_info_collection]
 
+        # 인스턴스 리스트에서 고유한 리전 목록 가져오기
+        regions = await instance_collection.distinct("region")
+        logger.info(f"Unique regions found: {regions}")
+
         instance_list = await instance_collection.find({}).to_list(length=None)
-        all_clusters = await self.get_all_aurora_clusters()
+        all_clusters = await self.get_all_aurora_clusters(regions)
 
         update_operations = []
         for instance in instance_list:
             cluster_name = instance['cluster_name']
-            matching_cluster = next((c for c, r in all_clusters if c['DBClusterIdentifier'] == cluster_name), None)
-            matching_region = next((r for c, r in all_clusters if c['DBClusterIdentifier'] == cluster_name), None)
+            instance_region = instance['region']
+            matching_cluster = next((c for c, r in all_clusters if c['DBClusterIdentifier'] == cluster_name and r == instance_region), None)
 
-            if matching_cluster and matching_region:
-                cluster_info = await self.get_cluster_info(matching_cluster, matching_region)
+            if matching_cluster:
+                cluster_info = await self.get_cluster_info(matching_cluster, instance_region)
                 members = matching_cluster['DBClusterMembers']
 
                 for member in members:
@@ -89,9 +83,9 @@ class AuroraInfoCollector:
                         )
                     )
 
-                logger.info(f"Prepared update for cluster: {cluster_name} in region: {matching_region} with {len(members)} members")
+                logger.info(f"Prepared update for cluster: {cluster_name} in region: {instance_region} with {len(members)} members")
             else:
-                logger.warning(f"No matching Aurora cluster found for: {cluster_name}")
+                logger.warning(f"No matching Aurora cluster found for: {cluster_name} in region: {instance_region}")
 
         if update_operations:
             result = await aurora_info_collection.bulk_write(update_operations)
